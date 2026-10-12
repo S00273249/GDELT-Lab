@@ -8,11 +8,20 @@ namespace GDELT_Lab
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // Allow requests from the Angular development server.
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AngularFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:4200")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
 
             var app = builder.Build();
 
@@ -25,8 +34,16 @@ namespace GDELT_Lab
 
             app.UseHttpsRedirection();
 
+            // Apply the Angular CORS policy.
+            app.UseCors("AngularFrontend");
+
             app.UseAuthorization();
 
+            app.MapGet("/api/health", () => Results.Ok(new
+            {
+                status = "OK",
+                message = "GDELT-Lab API is running"
+            }));
 
             app.MapControllers();
 
