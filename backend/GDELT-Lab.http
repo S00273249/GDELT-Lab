@@ -1,0 +1,6 @@
+@GDELT_Lab_HostAddress = http://localhost:5218
+
+GET {{GDELT_Lab_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
