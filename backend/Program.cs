@@ -12,11 +12,12 @@ namespace GDELT_Lab
             // Create the web application builder.
             var builder = WebApplication.CreateBuilder(args);
 
-            // Register services.
+            // Register application services.
             builder.Services.AddHttpClient<GdeltSearchService>();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
             builder.Services.AddSingleton<GdeltLocalDatasetService>();
             builder.Services.AddScoped<GkgIngestionService>();
             builder.Services.AddScoped<EventIngestionService>();
@@ -33,7 +34,7 @@ namespace GDELT_Lab
                 });
             });
 
-            // Configure the SQLite database path.
+            // Configure the SQLite database outside the backend project directory.
             var databaseDirectory = Path.GetFullPath(
                 Path.Combine(
                     builder.Environment.ContentRootPath,
@@ -46,14 +47,12 @@ namespace GDELT_Lab
                 databaseDirectory,
                 "gdelt-lab.db");
 
-            // Register the GdeltDbContext with SQLite.
             builder.Services.AddDbContext<GdeltDbContext>(options =>
                 options.UseSqlite($"Data Source={databasePath}"));
 
-            // Build the application.
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // Enable API documentation in development environments.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -64,17 +63,17 @@ namespace GDELT_Lab
             app.UseCors("AngularFrontend");
             app.UseAuthorization();
 
-            // Health endpoint.
+            // Report whether the API is running.
             app.MapGet("/api/health", () => Results.Ok(new
             {
                 status = "OK",
                 message = "GDELT-Lab API is running"
             }));
 
-            // Live GDELT DOC API search endpoint.
+            // Search the live GDELT DOC API.
             app.MapGet("/api/gdelt/search", async (
                 string? query,
-                GdeltSearchService gdeltSearchService,
+                GdeltSearchService service,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(query))
@@ -87,7 +86,7 @@ namespace GDELT_Lab
 
                 try
                 {
-                    var result = await gdeltSearchService.SearchAsync(
+                    var result = await service.SearchAsync(
                         query,
                         cancellationToken);
 
@@ -109,8 +108,7 @@ namespace GDELT_Lab
                 }
             });
 
-            // Local GKG search endpoint.
-            // Uses the shared local dataset service.
+            // Search the local GKG dataset.
             app.MapGet("/api/gdelt/local-search", async (
                 string? query,
                 int? limit,
@@ -153,7 +151,7 @@ namespace GDELT_Lab
                 }
             });
 
-            // Local Events, Mentions and GKG search endpoint.
+            // Search any supported local dataset.
             app.MapGet("/api/gdelt/local/{dataset}", async (
                 string dataset,
                 string? query,
@@ -161,8 +159,7 @@ namespace GDELT_Lab
                 GdeltLocalDatasetService service,
                 CancellationToken cancellationToken) =>
             {
-                if (!new[] { "events", "mentions", "gkg" }
-                    .Contains(dataset, StringComparer.OrdinalIgnoreCase))
+                if (!IsSupportedDataset(dataset))
                 {
                     return Results.BadRequest(new
                     {
@@ -196,82 +193,7 @@ namespace GDELT_Lab
                 }
             });
 
-            // GKG ingestion test endpoint.
-            app.MapPost("/api/gdelt/ingest/gkg/test-file",
-                async (
-                    GkgIngestionService service,
-                    IWebHostEnvironment environment,
-                    CancellationToken cancellationToken) =>
-                {
-                    var datasetDirectory = Path.GetFullPath(
-                        Path.Combine(
-                            environment.ContentRootPath,
-                            "..",
-                            "research-data",
-                            "extracted",
-                            "gkg"));
-
-                    if (!Directory.Exists(datasetDirectory))
-                    {
-                        return Results.Problem(
-                            "The extracted GKG dataset directory was not found.");
-                    }
-
-                    var filePath = Directory
-                        .GetFiles(datasetDirectory, "*.csv")
-                        .OrderBy(path => Path.GetFileName(path))
-                        .FirstOrDefault();
-
-                    if (filePath == null)
-                    {
-                        return Results.Problem(
-                            "No extracted GKG CSV files were found.");
-                    }
-
-                    var result = await service.ImportFileAsync(
-                        filePath, cancellationToken);
-
-                    return Results.Ok(new
-                    {
-                        result.FileName,
-                        result.DatasetType,
-                        result.Status,
-                        result.RecordsScanned,
-                        result.RecordsImported,
-                        result.RecordsSkipped,
-                        result.ProcessingDurationSeconds,
-                        result.ErrorMessage
-                    });
-                });
-
-            // GKG ingestion verification endpoint.
-            app.MapGet("/api/gdelt/ingest/gkg/verify",
-            async (GdeltDbContext db, CancellationToken ct) =>
-            {
-                var count = await db.GkgRecords.CountAsync(ct);
-
-                var sample = await db.GkgRecords
-                    .OrderBy(record => record.GkgRecordId)
-                    .Select(record => new
-                    {
-                        record.GkgRecordId,
-                        record.RecordTimestampUtc,
-                        record.SourceCommonName,
-                        record.DocumentIdentifier,
-                        record.V2Tone,
-                        record.Themes,
-                        record.Locations
-                    })
-                    .FirstOrDefaultAsync(ct);
-
-                return Results.Ok(new
-                {
-                    RecordCount = count,
-                    Sample = sample
-                });
-            });
-
-
+            // Import a specified GKG file.
             app.MapPost("/api/gdelt/ingest/gkg/import/{fileName}",
                 async (
                     string fileName,
@@ -280,21 +202,17 @@ namespace GDELT_Lab
                     CancellationToken cancellationToken) =>
                 {
                     if (Path.GetFileName(fileName) != fileName ||
-                        !fileName.EndsWith(".gkg.csv", StringComparison.OrdinalIgnoreCase))
+                        !fileName.EndsWith(
+                            ".gkg.csv",
+                            StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.BadRequest(
                             "Supply a valid GKG filename, not a path.");
                     }
 
-                    var datasetDirectory = Path.GetFullPath(
-                        Path.Combine(
-                            environment.ContentRootPath,
-                            "..",
-                            "research-data",
-                            "extracted",
-                            "gkg"));
-
-                    var filePath = Path.Combine(datasetDirectory, fileName);
+                    var filePath = Path.Combine(
+                        GetDatasetDirectory(environment, "gkg"),
+                        fileName);
 
                     if (!File.Exists(filePath))
                     {
@@ -303,77 +221,8 @@ namespace GDELT_Lab
                     }
 
                     var result = await service.ImportFileAsync(
-                        filePath, cancellationToken);
-
-                    return Results.Ok(new
-                    {
-                        result.FileName,
-                        result.Status,
-                        result.RecordsScanned,
-                        result.RecordsImported,
-                        result.RecordsSkipped,
-                        result.ProcessingDurationSeconds,
-                        result.ErrorMessage
-                    });
-                });
-
-            app.MapGet("/api/gdelt/ingest/summary",
-            async (GdeltDbContext db, CancellationToken ct) =>
-            {
-                var summary = await db.IngestionFiles
-                    .GroupBy(file => new
-                    {
-                        file.DatasetType,
-                        file.Status
-                    })
-                    .Select(group => new
-                    {
-                        group.Key.DatasetType,
-                        group.Key.Status,
-                        FileCount = group.Count(),
-                        RecordsScanned = group.Sum(file => file.RecordsScanned),
-                        RecordsImported = group.Sum(file => file.RecordsImported),
-                        RecordsSkipped = group.Sum(file => file.RecordsSkipped)
-                    })
-                    .ToListAsync(ct);
-
-                return Results.Ok(summary);
-            });
-
-
-            app.MapPost("/api/gdelt/ingest/events/import/{fileName}",
-                async (
-                    string fileName,
-                    EventIngestionService service,
-                    IWebHostEnvironment environment,
-                    CancellationToken cancellationToken) =>
-                {
-                    if (Path.GetFileName(fileName) != fileName ||
-                        !fileName.EndsWith(".export.CSV",
-                            StringComparison.OrdinalIgnoreCase))
-                    {
-                        return Results.BadRequest(
-                            "Supply a valid Events filename, not a path.");
-                    }
-
-                    var datasetDirectory = Path.GetFullPath(
-                        Path.Combine(
-                            environment.ContentRootPath,
-                            "..",
-                            "research-data",
-                            "extracted",
-                            "events"));
-
-                    var filePath = Path.Combine(datasetDirectory, fileName);
-
-                    if (!File.Exists(filePath))
-                    {
-                        return Results.NotFound(
-                            $"Events file not found: {fileName}");
-                    }
-
-                    var result = await service.ImportFileAsync(
-                        filePath, cancellationToken);
+                        filePath,
+                        cancellationToken);
 
                     return Results.Ok(new
                     {
@@ -388,13 +237,122 @@ namespace GDELT_Lab
                     });
                 });
 
-
-            app.MapGet("/api/gdelt/ingest/events/verify",
-                async (GdeltDbContext db, CancellationToken ct) =>
+            // Verify the number of imported GKG records and inspect a sample.
+            app.MapGet("/api/gdelt/ingest/gkg/verify",
+                async (
+                    GdeltDbContext db,
+                    CancellationToken cancellationToken) =>
                 {
-                    var count = await db.EventRecords.CountAsync(ct);
+                    var count = await db.GkgRecords.CountAsync(
+                        cancellationToken);
+
+                    var sample = await db.GkgRecords
+                        .AsNoTracking()
+                        .OrderBy(record => record.GkgRecordId)
+                        .Select(record => new
+                        {
+                            record.GkgRecordId,
+                            record.RecordTimestampUtc,
+                            record.SourceCommonName,
+                            record.DocumentIdentifier,
+                            record.V2Tone,
+                            record.Themes,
+                            record.Locations
+                        })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    return Results.Ok(new
+                    {
+                        RecordCount = count,
+                        Sample = sample
+                    });
+                });
+
+            // Summarise ingestion results by dataset and processing status.
+            app.MapGet("/api/gdelt/ingest/summary",
+                async (
+                    GdeltDbContext db,
+                    CancellationToken cancellationToken) =>
+                {
+                    var summary = await db.IngestionFiles
+                        .AsNoTracking()
+                        .GroupBy(file => new
+                        {
+                            file.DatasetType,
+                            file.Status
+                        })
+                        .Select(group => new
+                        {
+                            group.Key.DatasetType,
+                            group.Key.Status,
+                            FileCount = group.Count(),
+                            RecordsScanned = group.Sum(
+                                file => file.RecordsScanned),
+                            RecordsImported = group.Sum(
+                                file => file.RecordsImported),
+                            RecordsSkipped = group.Sum(
+                                file => file.RecordsSkipped)
+                        })
+                        .ToListAsync(cancellationToken);
+
+                    return Results.Ok(summary);
+                });
+
+            // Import a specified Events file.
+            app.MapPost("/api/gdelt/ingest/events/import/{fileName}",
+                async (
+                    string fileName,
+                    EventIngestionService service,
+                    IWebHostEnvironment environment,
+                    CancellationToken cancellationToken) =>
+                {
+                    if (Path.GetFileName(fileName) != fileName ||
+                        !fileName.EndsWith(
+                            ".export.CSV",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Results.BadRequest(
+                            "Supply a valid Events filename, not a path.");
+                    }
+
+                    var filePath = Path.Combine(
+                        GetDatasetDirectory(environment, "events"),
+                        fileName);
+
+                    if (!File.Exists(filePath))
+                    {
+                        return Results.NotFound(
+                            $"Events file not found: {fileName}");
+                    }
+
+                    var result = await service.ImportFileAsync(
+                        filePath,
+                        cancellationToken);
+
+                    return Results.Ok(new
+                    {
+                        result.FileName,
+                        result.DatasetType,
+                        result.Status,
+                        result.RecordsScanned,
+                        result.RecordsImported,
+                        result.RecordsSkipped,
+                        result.ProcessingDurationSeconds,
+                        result.ErrorMessage
+                    });
+                });
+
+            // Verify the number of imported Events records and inspect a sample.
+            app.MapGet("/api/gdelt/ingest/events/verify",
+                async (
+                    GdeltDbContext db,
+                    CancellationToken cancellationToken) =>
+                {
+                    var count = await db.EventRecords.CountAsync(
+                        cancellationToken);
 
                     var sample = await db.EventRecords
+                        .AsNoTracking()
                         .OrderBy(record => record.GlobalEventId)
                         .Select(record => new
                         {
@@ -405,7 +363,7 @@ namespace GDELT_Lab
                             record.EventCode,
                             record.SourceUrl
                         })
-                        .FirstOrDefaultAsync(ct);
+                        .FirstOrDefaultAsync(cancellationToken);
 
                     return Results.Ok(new
                     {
@@ -414,56 +372,7 @@ namespace GDELT_Lab
                     });
                 });
 
-
-            app.MapPost("/api/gdelt/ingest/events/fix-first-manifest",
-                async (
-                    GdeltDbContext db,
-                    IWebHostEnvironment environment,
-                    CancellationToken ct) =>
-                {
-                    if (!environment.IsDevelopment())
-                        return Results.NotFound();
-
-                    const string fileName = "20261011194500.export.CSV";
-
-                    var manifest = await db.IngestionFiles
-                        .SingleOrDefaultAsync(
-                            file => file.FileName == fileName &&
-                                    file.DatasetType == "Events",
-                            ct);
-
-                    if (manifest == null ||
-                        manifest.Status != "Completed" ||
-                        manifest.RecordsScanned != 756 ||
-                        manifest.RecordsImported != 0)
-                    {
-                        return Results.Conflict(
-                            "Manifest does not match the expected state.");
-                    }
-
-                    var eventCount = await db.EventRecords.CountAsync(ct);
-
-                    if (eventCount != 756)
-                    {
-                        return Results.Conflict(
-                            $"Expected 756 Events records, found {eventCount}.");
-                    }
-
-                    manifest.RecordsImported = 756;
-                    await db.SaveChangesAsync(ct);
-
-                    return Results.Ok(new
-                    {
-                        manifest.FileName,
-                        manifest.Status,
-                        manifest.RecordsScanned,
-                        manifest.RecordsImported,
-                        manifest.RecordsSkipped
-                    });
-                });
-
-
-
+            // Import a specified Mentions file.
             app.MapPost("/api/gdelt/ingest/mentions/import/{fileName}",
                 async (
                     string fileName,
@@ -472,22 +381,17 @@ namespace GDELT_Lab
                     CancellationToken cancellationToken) =>
                 {
                     if (Path.GetFileName(fileName) != fileName ||
-                        !fileName.EndsWith(".mentions.CSV",
+                        !fileName.EndsWith(
+                            ".mentions.CSV",
                             StringComparison.OrdinalIgnoreCase))
                     {
                         return Results.BadRequest(
                             "Supply a valid Mentions filename, not a path.");
                     }
 
-                    var datasetDirectory = Path.GetFullPath(
-                        Path.Combine(
-                            environment.ContentRootPath,
-                            "..",
-                            "research-data",
-                            "extracted",
-                            "mentions"));
-
-                    var filePath = Path.Combine(datasetDirectory, fileName);
+                    var filePath = Path.Combine(
+                        GetDatasetDirectory(environment, "mentions"),
+                        fileName);
 
                     if (!File.Exists(filePath))
                     {
@@ -496,7 +400,8 @@ namespace GDELT_Lab
                     }
 
                     var result = await service.ImportFileAsync(
-                        filePath, cancellationToken);
+                        filePath,
+                        cancellationToken);
 
                     return Results.Ok(new
                     {
@@ -511,37 +416,44 @@ namespace GDELT_Lab
                     });
                 });
 
+            // Verify the number of imported Mentions records and inspect a sample.
             app.MapGet("/api/gdelt/ingest/mentions/verify",
-            async (GdeltDbContext db, CancellationToken ct) =>
-            {
-                var count = await db.MentionRecords.CountAsync(ct);
-
-                var sample = await db.MentionRecords
-                    .OrderBy(record => record.Id)
-                    .Select(record => new
-                    {
-                        record.Id,
-                        record.GlobalEventId,
-                        record.MentionTimeDate,
-                        record.MentionSourceName,
-                        record.MentionIdentifier
-                    })
-                    .FirstOrDefaultAsync(ct);
-
-                return Results.Ok(new
+                async (
+                    GdeltDbContext db,
+                    CancellationToken cancellationToken) =>
                 {
-                    RecordCount = count,
-                    Sample = sample
+                    var count = await db.MentionRecords.CountAsync(
+                        cancellationToken);
+
+                    var sample = await db.MentionRecords
+                        .AsNoTracking()
+                        .OrderBy(record => record.Id)
+                        .Select(record => new
+                        {
+                            record.Id,
+                            record.GlobalEventId,
+                            record.MentionTimeDate,
+                            record.MentionSourceName,
+                            record.MentionIdentifier
+                        })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    return Results.Ok(new
+                    {
+                        RecordCount = count,
+                        Sample = sample
+                    });
                 });
-            });
 
-
+            // Report ingestion counts and processing-time measurements.
             app.MapGet("/api/gdelt/ingest/measurements",
-                async (GdeltDbContext db, CancellationToken ct) =>
+                async (
+                    GdeltDbContext db,
+                    CancellationToken cancellationToken) =>
                 {
                     var files = await db.IngestionFiles
                         .AsNoTracking()
-                        .ToListAsync(ct);
+                        .ToListAsync(cancellationToken);
 
                     var measurements = files
                         .GroupBy(file => file.DatasetType)
@@ -582,10 +494,40 @@ namespace GDELT_Lab
                     });
                 });
 
-
             app.MapControllers();
 
             app.Run();
+        }
+
+        /// <summary>
+        /// Checks whether a dataset name is supported by the local search API.
+        /// </summary>
+        private static bool IsSupportedDataset(string dataset) =>
+            dataset.Equals("events", StringComparison.OrdinalIgnoreCase) ||
+            dataset.Equals("mentions", StringComparison.OrdinalIgnoreCase) ||
+            dataset.Equals("gkg", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Resolves the directory containing an extracted dataset.
+        /// </summary>
+        private static string GetDatasetDirectory(
+            IWebHostEnvironment environment,
+            string dataset)
+        {
+            if (!IsSupportedDataset(dataset))
+            {
+                throw new ArgumentException(
+                    "Dataset must be events, mentions or gkg.",
+                    nameof(dataset));
+            }
+
+            return Path.GetFullPath(
+                Path.Combine(
+                    environment.ContentRootPath,
+                    "..",
+                    "research-data",
+                    "extracted",
+                    dataset.ToLowerInvariant()));
         }
     }
 }
