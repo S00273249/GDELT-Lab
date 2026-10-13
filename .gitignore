@@ -15,3 +15,14 @@
 .env
 .env.*
 !.env.example
+
+# Research data
+research-data/
+@'
+
+# Local prototype database
+/data/
+*.db
+*.db-shm
+*.db-wal
+'@ | Add-Content .gitignore
