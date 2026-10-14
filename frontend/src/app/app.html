@@ -1,19 +1,442 @@
-<main class="dashboard">
-  <h1>{{ title() }}</h1>
-  <p>Global News &amp; Public Affairs Intelligence Platform</p>
+<!-- ==========================================
+     MAIN APPLICATION LAYOUT AND HEADER
+     Introduces the GDELT research environment
+     and displays the API connection status.
+     ========================================== -->
 
-  <section class="status-panel">
-    <h2>Backend connection</h2>
+<main class="lab">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">GDELT RESEARCH ENVIRONMENT</p>
+      <h1>{{ title() }}</h1>
+      <p class="subtitle">
+        Explore downloaded datasets and inspect their underlying records.
+      </p>
+    </div>
 
-    @if (loading()) {
-      <p>Connecting to the ASP.NET Core API...</p>
-    } @else if (health(); as response) {
-      <p class="success">✓ {{ response.message }}</p>
-      <p>Status: {{ response.status }}</p>
+    <!-- Display the current API health status.
+         The connected class is applied only when the health
+         check succeeds and no health error has been reported. -->
+    <div class="connection" [class.connected]="health() && !healthError()">
+      <span class="status-dot"></span>
+      @if (healthLoading()) {
+        Checking API
+      } @else if (health()) {
+        API connected
+      } @else {
+        API unavailable
+      }
+    </div>
+  </header>
+
+
+  <!-- ==========================================
+       PROJECT STATUS AND INGESTION OVERVIEW
+       Summarises the imported datasets, processing
+       results, and recorded ingestion statistics.
+       ========================================== -->
+
+  <section class="overview-section">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">PROJECT STATUS</p>
+        <h2>Dataset &amp; Ingestion Overview</h2>
+        <p>Local data acquired, extracted and imported for the prototype.</p>
+      </div>
+
+      <!-- Refresh the ingestion statistics.
+           Disable the button while the request is in progress. -->
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="overviewLoading()"
+        (click)="loadOverview()">
+        Refresh statistics
+      </button>
+    </div>
+
+    <!-- Show a loading message until the overview request completes. -->
+    @if (overviewLoading()) {
+      <div class="message-panel">Loading project statistics...</div>
     } @else {
-      <p class="error">{{ error() }}</p>
+      <!-- Display any error returned while loading the overview. -->
+      @if (overviewError()) {
+        <div class="message-panel error-message">
+          {{ overviewError() }}
+        </div>
+      }
+
+      <!-- Display aggregate ingestion metrics when available. -->
+      @if (ingestionMeasurements(); as measurements) {
+        <div class="overview-metrics">
+          <article class="metric-card">
+            <span class="metric-label">Source files</span>
+            <strong>{{ measurements.totalFiles.toLocaleString() }}</strong>
+            <span class="metric-note">Tracked for ingestion</span>
+          </article>
+
+          <article class="metric-card">
+            <span class="metric-label">Files completed</span>
+            <strong>{{ measurements.totalCompletedFiles.toLocaleString() }}</strong>
+            <span class="metric-note">Successfully processed</span>
+          </article>
+
+          <article class="metric-card">
+            <span class="metric-label">Files failed</span>
+            <strong>{{ measurements.totalFailedFiles.toLocaleString() }}</strong>
+            <span class="metric-note">Reported ingestion failures</span>
+          </article>
+
+          <article class="metric-card">
+            <span class="metric-label">Records imported</span>
+            <strong>{{ measurements.totalRecordsImported.toLocaleString() }}</strong>
+            <span class="metric-note">Across all three datasets</span>
+          </article>
+        </div>
+
+        <!-- Break down ingestion statistics by dataset type. -->
+        <h3 class="overview-subheading">Dataset breakdown</h3>
+
+        <div class="dataset-overview-grid">
+          <!-- Track each card by its dataset type for stable rendering. -->
+          @for (dataset of measurements.datasets; track dataset.datasetType) {
+            <article class="dataset-overview-card">
+              <div class="dataset-card-heading">
+                <h3>{{ dataset.datasetType }}</h3>
+
+                <!-- Provide a simple indication of reported failures. -->
+                <span class="dataset-status">
+                  {{ dataset.failedFiles === 0 ? 'No failures reported' : 'Failures reported' }}
+                </span>
+              </div>
+
+              <!-- Display file and record processing statistics. -->
+              <div class="dataset-stat">
+                <span>Source files</span>
+                <strong>{{ dataset.fileCount.toLocaleString() }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Records imported</span>
+                <strong>{{ dataset.recordsImported.toLocaleString() }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Records skipped</span>
+                <strong>{{ dataset.recordsSkipped.toLocaleString() }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Processing time</span>
+                <strong>{{ dataset.totalProcessingSeconds }} s</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Average per file</span>
+                <strong>{{ dataset.averageSecondsPerFile }} s</strong>
+              </div>
+            </article>
+          }
+        </div>
+      }
+
+      <!-- Provide a more detailed ingestion verification table
+           when the corresponding summary is available. -->
+      @if (ingestionSummary(); as summary) {
+        <details class="overview-details">
+          <summary>Detailed ingestion verification</summary>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Status</th>
+                  <th>Files</th>
+                  <th>Records scanned</th>
+                  <th>Records imported</th>
+                  <th>Records skipped</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Generate one verification row per dataset. -->
+                @for (dataset of summary.value; track dataset.datasetType) {
+                  <tr>
+                    <td>{{ dataset.datasetType }}</td>
+                    <td>{{ dataset.status }}</td>
+                    <td>{{ dataset.fileCount.toLocaleString() }}</td>
+                    <td>{{ dataset.recordsScanned.toLocaleString() }}</td>
+                    <td>{{ dataset.recordsImported.toLocaleString() }}</td>
+                    <td>{{ dataset.recordsSkipped.toLocaleString() }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </details>
+      }
     }
   </section>
+
+
+  <!-- ==========================================
+       DATA ACQUISITION AND STORAGE MEASUREMENTS
+       Presents recorded storage sizes and the
+       expansion ratio of the current research sample.
+       ========================================== -->
+
+  <section class="research-measurements">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">ACQUISITION &amp; STORAGE</p>
+        <h2>Data Pipeline Measurements</h2>
+        <p>Recorded measurements from the current research dataset.</p>
+      </div>
+    </div>
+
+    <!-- Display the recorded measurements as metric cards.
+         These values are currently specified directly in the template. -->
+    <div class="overview-metrics">
+      <article class="metric-card">
+        <span class="metric-label">Compressed archives</span>
+        <strong>363 MiB</strong>
+        <span class="metric-note">287 retained source archives</span>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-label">Extracted data</span>
+        <strong>1,177.87 MiB</strong>
+        <span class="metric-note">Files retained for repeatable processing</span>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-label">Expansion ratio</span>
+        <strong>3.24×</strong>
+        <span class="metric-note">Extracted size ÷ compressed size</span>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-label">SQLite database</span>
+        <strong>1,280.89 MiB</strong>
+        <span class="metric-note">Main database file measurement</span>
+      </article>
+    </div>
+
+    <!-- Clarify the scope of the measurements for research purposes. -->
+    <div class="research-note">
+      These are recorded measurements for the current research sample,
+      not estimates of the size of the complete GDELT archive.
+    </div>
+  </section>
+
+
+  <!-- ==========================================
+       DATASET EXPLORER
+       Allows users to select which dataset they
+       want to browse in the records section.
+       ========================================== -->
+
+  <section class="dataset-section">
+    <div class="section-heading">
+      <div>
+        <h2>Dataset Explorer</h2>
+        <p>Select a dataset to browse its extracted records.</p>
+      </div>
+    </div>
+
+    <div class="dataset-tabs">
+      <!-- Generate a selection button for each available dataset. -->
+      @for (dataset of datasets; track dataset.id) {
+        <button
+          type="button"
+          class="dataset-tab"
+          [class.active]="selectedDataset() === dataset.id"
+          (click)="selectDataset(dataset.id)">
+          <span class="dataset-name">{{ dataset.name }}</span>
+          <span class="dataset-description">{{ dataset.description }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+
+  <!-- ==========================================
+       RECORD BROWSER AND SEARCH
+       Provides search controls and a table of
+       records from the currently selected dataset.
+       ========================================== -->
+
+  <section class="browser-section">
+    <div class="browser-heading">
+      <div>
+        <h2>Records</h2>
+
+        <!-- Show dataset and result metadata when data is available. -->
+        @if (data(); as result) {
+          <p>
+            {{ result.dataset | uppercase }} ·
+            {{ result.count }} returned ·
+            {{ result.filesAvailable }} source files
+          </p>
+        } @else {
+          <p>Browse and inspect source records.</p>
+        }
+      </div>
+    </div>
+
+    <!-- Submit a search without triggering a full page reload.
+         The form's submit handler prevents the default browser action
+         and invokes the component's record-loading method. -->
+    <form
+      class="search-bar"
+      (submit)="$event.preventDefault(); loadRecords()">
+      <label class="search-input">
+        <span>Search records</span>
+        <input
+          type="text"
+          placeholder="Search source, URL, theme or record ID..."
+          [value]="searchText()"
+          (input)="searchText.set($any($event.target).value)" />
+      </label>
+
+      <!-- Prevent additional searches while records are loading. -->
+      <button
+        type="submit"
+        class="primary-button"
+        [disabled]="loading()">
+        Search
+      </button>
+    </form>
+
+    <!-- Handle the loading, error, and results states of the search. -->
+    @if (loading()) {
+      <div class="message-panel">Loading records...</div>
+    } @else if (error()) {
+      <div class="message-panel error-message">{{ error() }}</div>
+    } @else if (data(); as result) {
+      <!-- Summarise the returned results and scanned records. -->
+      <div class="result-summary">
+        <span><strong>{{ result.count }}</strong> records returned</span>
+        <span>{{ result.recordsScanned }} records scanned</span>
+      </div>
+
+      <!-- Display an empty-state message when no records match. -->
+      @if (result.results.length === 0) {
+        <div class="message-panel">No records found for this query.</div>
+      } @else {
+        <!-- Present matching records in a horizontally scrollable table. -->
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Record ID</th>
+                <th>Timestamp</th>
+                <th>Source / summary</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Track rows by record ID and highlight the selected record. -->
+              @for (record of result.results; track record.recordId) {
+                <tr
+                  [class.selected]="selectedRecord() === record"
+                  (click)="selectRecord(record)">
+                  <td class="record-id">{{ record.recordId }}</td>
+
+                  <!-- Fall back to the third raw field, then a placeholder,
+                       when the dedicated timestamp is unavailable. -->
+                  <td>{{ record.timestamp ?? record.fields?.[2] ?? '—' }}</td>
+
+                  <!-- Delegate dataset-specific summary formatting
+                       to the recordSummary component method. -->
+                  <td class="source-cell">{{ recordSummary(record) }}</td>
+
+                  <td>
+                    <!-- Stop event propagation to prevent the row click
+                         handler from firing a second time. -->
+                    <button
+                      type="button"
+                      class="text-button"
+                      (click)="$event.stopPropagation(); selectRecord(record)">
+                      Inspect
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </section>
+
+
+  <!-- ==========================================
+       SELECTED RECORD INSPECTOR
+       Shows the individual fields, source link,
+       and raw JSON for the selected GDELT record.
+       Rendered only when a record is selected.
+       ========================================== -->
+
+  @if (selectedRecord(); as record) {
+    <section class="inspector-section">
+      <div class="inspector-heading">
+        <div>
+          <p class="eyebrow">RECORD INSPECTOR</p>
+          <h2>{{ record.recordId }}</h2>
+          <p>Dataset: {{ record.dataset | uppercase }}</p>
+        </div>
+
+        <!-- Clear the selected record to close the inspector. -->
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="selectedRecord.set(null)">
+          Close
+        </button>
+      </div>
+
+      <!-- Provide a link to the original article when a URL exists.
+           Open it in a new tab with additional opener protection. -->
+      @if (record.url) {
+        <p class="source-link">
+          <strong>Article URL:</strong>
+          <a
+            [href]="record.url"
+            target="_blank"
+            rel="noopener noreferrer">
+            Open source article
+          </a>
+        </p>
+      }
+
+      <!-- Display the selected record's fields and their descriptions. -->
+      <div class="field-list">
+        <!-- recordEntries prepares the field names, descriptions,
+             and values for presentation in the inspector. -->
+        @for (entry of recordEntries(record); track entry.name) {
+          <div class="field-row">
+            <div class="field-name">{{ entry.name }}</div>
+
+            <div class="field-details">
+              <div class="field-description">
+                {{ entry.description }}
+              </div>
+
+              <div class="field-value">{{ entry.value }}</div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Allow users to expand the complete record as formatted JSON.
+           The json pipe serialises the record for inspection. -->
+      <details class="raw-data">
+        <summary>View raw record JSON</summary>
+        <pre>{{ record | json }}</pre>
+      </details>
+    </section>
+  }
 </main>
 
 <router-outlet />

@@ -3,6 +3,7 @@ using GDELT_Lab.Services;
 using GDELT_Lab.Data;
 using Microsoft.EntityFrameworkCore;
 
+// dotnet run --project backend/GDELT-Lab.csproj --launch-profile http
 namespace GDELT_Lab
 {
     public class Program
