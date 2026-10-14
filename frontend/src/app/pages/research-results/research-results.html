@@ -1,0 +1,173 @@
+
+<main class="research-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">RESEARCH AND EVIDENCE</p>
+      <h1>Research Results</h1>
+      <p class="subtitle">
+        Findings from investigating GDELT as a data source for global news
+        and public affairs intelligence.
+      </p>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="section-heading">
+      <h2>Research summary</h2>
+      <p>
+        The current prototype demonstrates local data collection, ingestion
+        and inspection while evaluating the suitability of GDELT for further
+        analysis.
+      </p>
+    </div>
+
+    <div class="findings-grid">
+      <article class="finding-card">
+        <span class="finding-category">LOCAL DATA</span>
+        <strong class="finding-value">287</strong>
+        <h3>Source files collected</h3>
+        <p>
+          The research dataset contains 95 Events files, 96 Mentions files
+          and 96 GKG files.
+        </p>
+      </article>
+
+      <article class="finding-card">
+        <span class="finding-category">INGESTION</span>
+        <strong class="finding-value">442,720</strong>
+        <h3>Records imported</h3>
+        <p>
+          The local database contains records from all three dataset types,
+          making them available for inspection without repeatedly querying
+          the external API.
+        </p>
+      </article>
+
+      <article class="finding-card">
+        <span class="finding-category">API TESTING</span>
+        <strong class="finding-value">HTTP 429</strong>
+        <h3>DOC API limitation encountered</h3>
+        <p>
+          Repeated rate-limit responses interrupted attempts to use the DOC
+          API for exploratory queries. This limits its usefulness for the
+          current testing workflow.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <h2>Data source evaluation</h2>
+      <p>
+        The investigation is assessing how different GDELT services could
+        support the wider intelligence platform.
+      </p>
+    </div>
+
+    <div class="result-list">
+      <article class="result-item">
+        <div class="result-marker">01</div>
+        <div>
+          <h3>GDELT DOC API</h3>
+          <span class="status status-observed">Tested — limitation observed</span>
+          <p>
+            The DOC API was tested with search and timeline queries. Repeated
+            HTTP 429 responses occurred, including after waiting between
+            requests. Further work is needed to determine whether a more
+            controlled query strategy would be reliable enough.
+          </p>
+        </div>
+      </article>
+
+      <article class="result-item">
+        <div class="result-marker">02</div>
+        <div>
+          <h3>GDELT BigQuery</h3>
+          <span class="status status-investigating">Under investigation</span>
+          <p>
+            BigQuery is being explored as an alternative route for querying
+            GDELT data. Its suitability, access requirements, query costs
+            and practical limits still need to be evaluated.
+          </p>
+        </div>
+      </article>
+
+      <article class="result-item">
+        <div class="result-marker">03</div>
+        <div>
+          <h3>GDELT NGrams</h3>
+          <span class="status status-investigating">Under investigation</span>
+          <p>
+            NGrams are another avenue being considered for examining changes
+            in language and topic frequency over time. Their usefulness for
+            the project's intended research questions has not yet been
+            established.
+          </p>
+        </div>
+      </article>
+
+      <article class="result-item">
+        <div class="result-marker">04</div>
+        <div>
+          <h3>Local dataset ingestion</h3>
+          <span class="status status-confirmed">Demonstrated</span>
+          <p>
+            Events, Mentions and GKG records have been imported into a local
+            database. The prototype can inspect extracted source records,
+            reducing dependence on live API calls during development and
+            evaluation.
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <h2>Research implications</h2>
+      <p>What the current evidence means for the proposed platform.</p>
+    </div>
+
+    <div class="implications-grid">
+      <article class="implication-card">
+        <h3>Build around stored data</h3>
+        <p>
+          A local ingestion pipeline and database provide a foundation for
+          repeatable queries, historical analysis and reducing dependence
+          on live API availability.
+        </p>
+      </article>
+
+      <article class="implication-card">
+        <h3>Evaluate sources independently</h3>
+        <p>
+          Different GDELT services may serve different purposes. Each should
+          be assessed for coverage, access restrictions, data structure and
+          suitability for the intended features.
+        </p>
+      </article>
+
+      <article class="implication-card">
+        <h3>Move towards analysis</h3>
+        <p>
+          The next stage is to investigate how records can be connected
+          across articles, events, people, organisations, locations and
+          themes to support more useful research.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section methodology-note">
+    <h2>Interpreting these results</h2>
+    <p>
+      The record counts describe the locally collected research dataset,
+      not the total volume of information available through GDELT.
+      The DOC API observations describe the testing performed so far and
+      do not establish that the service is universally unusable.
+      BigQuery and NGrams remain under investigation until their behaviour
+      has been tested and documented.
+    </p>
+  </section>
+</main>

@@ -1,0 +1,132 @@
+<main class="about-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">PROJECT INFORMATION</p>
+      <h1>About GDELT-Lab</h1>
+      <p class="subtitle">
+        An experimental research environment for investigating global news
+        data and evaluating its potential for a news intelligence platform.
+      </p>
+    </div>
+  </header>
+
+  <section class="section">
+    <h2>Project overview</h2>
+    <p>
+      GDELT-Lab is a research prototype exploring how publicly available
+      GDELT datasets can be collected, stored, inspected and analysed.
+      The work supports the investigation of a larger Global News and
+      Public Affairs Intelligence Platform.
+    </p>
+    <p>
+      The prototype provides a local environment for examining structured
+      event records, event mentions and Global Knowledge Graph data without
+      relying exclusively on live API requests.
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>Research objectives</h2>
+
+    <div class="objective-list">
+      <article class="objective">
+        <span class="objective-number">01</span>
+        <div>
+          <h3>Evaluate data sources</h3>
+          <p>
+            Investigate GDELT services and determine their suitability for
+            the platform's research and analytical requirements.
+          </p>
+        </div>
+      </article>
+
+      <article class="objective">
+        <span class="objective-number">02</span>
+        <div>
+          <h3>Build a data ingestion workflow</h3>
+          <p>
+            Collect source files, extract their contents and import records
+            into a local database for repeatable inspection.
+          </p>
+        </div>
+      </article>
+
+      <article class="objective">
+        <span class="objective-number">03</span>
+        <div>
+          <h3>Understand the underlying records</h3>
+          <p>
+            Explore the structure of Events, Mentions and GKG datasets,
+            including their fields, themes and geographic information.
+          </p>
+        </div>
+      </article>
+
+      <article class="objective">
+        <span class="objective-number">04</span>
+        <div>
+          <h3>Inform the wider platform design</h3>
+          <p>
+            Use the research findings to guide future decisions about
+            ingestion, storage, searching and analysis.
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Technology stack</h2>
+    <p>
+      The prototype combines a web frontend, a backend API and a local
+      data store.
+    </p>
+
+    <div class="technology-grid">
+      <article class="technology-card">
+        <span class="technology-label">FRONTEND</span>
+        <h3>Angular</h3>
+        <p>TypeScript-based interface for browsing datasets and research findings.</p>
+      </article>
+
+      <article class="technology-card">
+        <span class="technology-label">BACKEND</span>
+        <h3>ASP.NET Core</h3>
+        <p>API endpoints for local dataset access and ingestion statistics.</p>
+      </article>
+
+      <article class="technology-card">
+        <span class="technology-label">DATA</span>
+        <h3>SQLite</h3>
+        <p>Local database used to store the imported research records.</p>
+      </article>
+
+      <article class="technology-card">
+        <span class="technology-label">SOURCE</span>
+        <h3>GDELT</h3>
+        <p>Global event, event-mention and knowledge-graph datasets under investigation.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Current scope and limitations</h2>
+    <ul class="limitations-list">
+      <li>
+        The current dataset represents the files collected for this research,
+        not the entirety of GDELT.
+      </li>
+      <li>
+        External API availability and rate limits can affect exploratory testing.
+      </li>
+      <li>
+        Readable theme labels may be generated from theme codes and should not
+        automatically be treated as officially verified definitions.
+      </li>
+      <li>
+        Advanced cross-source analysis and intelligence features remain future
+        development goals unless demonstrated elsewhere in the prototype.
+      </li>
+    </ul>
+  </section>
+</main>

@@ -1,0 +1,205 @@
+
+<main class="overview">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">GDELT RESEARCH ENVIRONMENT</p>
+      <h1>{{ title() }}</h1>
+      <p class="subtitle">
+        Local data acquired, extracted and imported for the prototype.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="refresh-button"
+      [disabled]="loading()"
+      (click)="loadOverview()">
+      {{ loading() ? 'Loading statistics...' : 'Refresh statistics' }}
+    </button>
+  </header>
+
+  <section class="section">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">PROJECT STATUS</p>
+        <h2>Dataset &amp; Ingestion Overview</h2>
+        <p>Current ingestion results from the local research database.</p>
+      </div>
+    </div>
+
+    @if (loading() && !ingestionMeasurements()) {
+      <div class="message-panel">Loading project statistics...</div>
+    } @else {
+      @if (error()) {
+        <div class="message-panel error-message">{{ error() }}</div>
+      }
+
+      @if (ingestionMeasurements(); as measurements) {
+        <div class="stat-grid">
+          <article class="stat-card">
+            <span class="stat-label">Source files</span>
+            <strong>{{ measurements.totalFiles | number }}</strong>
+            <span class="stat-note">Tracked for ingestion</span>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Files completed</span>
+            <strong>{{ measurements.totalCompletedFiles | number }}</strong>
+            <span class="stat-note">Successfully processed</span>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Files failed</span>
+            <strong>{{ measurements.totalFailedFiles | number }}</strong>
+            <span class="stat-note">Reported ingestion failures</span>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Records imported</span>
+            <strong>{{ measurements.totalRecordsImported | number }}</strong>
+            <span class="stat-note">Across all three datasets</span>
+          </article>
+        </div>
+
+        <h3 class="subheading">Dataset breakdown</h3>
+
+        <div class="dataset-grid">
+          @for (dataset of measurements.datasets; track dataset.datasetType) {
+            <article class="dataset-card">
+              <div class="dataset-card-heading">
+                <h3>{{ dataset.datasetType }}</h3>
+
+                <span class="dataset-status"
+                  [class.has-failures]="dataset.failedFiles > 0">
+                  {{ dataset.failedFiles === 0
+                    ? 'No failures reported'
+                    : 'Failures reported' }}
+                </span>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Source files</span>
+                <strong>{{ dataset.fileCount | number }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Files completed</span>
+                <strong>{{ dataset.completedFiles | number }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Files failed</span>
+                <strong>{{ dataset.failedFiles | number }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Records scanned</span>
+                <strong>{{ dataset.recordsScanned | number }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Records imported</span>
+                <strong>{{ dataset.recordsImported | number }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Records skipped</span>
+                <strong>{{ dataset.recordsSkipped | number }}</strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Total processing time</span>
+                <strong>
+                  {{ dataset.totalProcessingSeconds | number:'1.2-2' }} s
+                </strong>
+              </div>
+
+              <div class="dataset-stat">
+                <span>Average per file</span>
+                <strong>
+                  {{ dataset.averageSecondsPerFile | number:'1.2-2' }} s
+                </strong>
+              </div>
+            </article>
+          }
+        </div>
+      }
+
+      @if (ingestionSummary(); as summary) {
+        <details class="overview-details">
+          <summary>Detailed ingestion verification</summary>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Status</th>
+                  <th>Files</th>
+                  <th>Records scanned</th>
+                  <th>Records imported</th>
+                  <th>Records skipped</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (dataset of summary.value; track dataset.datasetType) {
+                  <tr>
+                    <td>{{ dataset.datasetType }}</td>
+                    <td>{{ dataset.status }}</td>
+                    <td>{{ dataset.fileCount | number }}</td>
+                    <td>{{ dataset.recordsScanned | number }}</td>
+                    <td>{{ dataset.recordsImported | number }}</td>
+                    <td>{{ dataset.recordsSkipped | number }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </details>
+      }
+    }
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">ACQUISITION &amp; STORAGE</p>
+        <h2>Data Pipeline Measurements</h2>
+        <p>Recorded measurements from the current research dataset.</p>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <article class="stat-card">
+        <span class="stat-label">Compressed archives</span>
+        <strong>363 MiB</strong>
+        <span class="stat-note">287 retained source archives</span>
+      </article>
+
+      <article class="stat-card">
+        <span class="stat-label">Extracted data</span>
+        <strong>1,177.87 MiB</strong>
+        <span class="stat-note">Files retained for repeatable processing</span>
+      </article>
+
+      <article class="stat-card">
+        <span class="stat-label">Expansion ratio</span>
+        <strong>3.24×</strong>
+        <span class="stat-note">Extracted size ÷ compressed size</span>
+      </article>
+
+      <article class="stat-card">
+        <span class="stat-label">SQLite database</span>
+        <strong>1,280.89 MiB</strong>
+        <span class="stat-note">Recorded main database file size</span>
+      </article>
+    </div>
+
+    <div class="research-note">
+      These are recorded measurements for the current research sample,
+      not estimates of the complete GDELT archive. They reflect the
+      measurements captured previously and are not automatically refreshed.
+    </div>
+  </section>
+</main>

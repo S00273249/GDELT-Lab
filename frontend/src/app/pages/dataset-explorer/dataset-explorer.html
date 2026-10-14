@@ -1,0 +1,187 @@
+
+<main class="lab">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">GDELT RESEARCH ENVIRONMENT</p>
+      <h1>Dataset Explorer</h1>
+      <p class="subtitle">
+        Explore downloaded datasets and inspect their underlying records.
+      </p>
+    </div>
+  </header>
+
+  <section class="dataset-section">
+    <div class="section-heading">
+      <div>
+        <h2>Datasets</h2>
+        <p>Select a dataset to browse its extracted records.</p>
+      </div>
+    </div>
+
+    <div class="dataset-tabs">
+      @for (dataset of datasets; track dataset.id) {
+        <button
+          type="button"
+          class="dataset-tab"
+          [class.active]="selectedDataset() === dataset.id"
+          (click)="selectDataset(dataset.id)">
+          <span class="dataset-name">{{ dataset.name }}</span>
+          <span class="dataset-description">{{ dataset.description }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="browser-section">
+    <div class="browser-heading">
+      <div>
+        <h2>Records</h2>
+        @if (data(); as result) {
+          <p>
+            {{ result.dataset | uppercase }} ·
+            {{ result.count }} returned ·
+            {{ result.filesAvailable }} source files
+          </p>
+        } @else {
+          <p>Browse and inspect source records.</p>
+        }
+      </div>
+    </div>
+
+    <form
+      class="search-bar"
+      (submit)="$event.preventDefault(); loadRecords()">
+      <label class="search-input">
+        <span>Search records</span>
+        <input
+          type="text"
+          placeholder="Search source, URL, theme or record ID..."
+          [value]="searchText()"
+          (input)="searchText.set($any($event.target).value)" />
+      </label>
+
+      <button
+        type="submit"
+        class="primary-button"
+        [disabled]="loading()">
+        Search
+      </button>
+    </form>
+
+    @if (loading()) {
+      <div class="message-panel">Loading records...</div>
+    } @else if (error()) {
+      <div class="message-panel error-message">{{ error() }}</div>
+    } @else if (data(); as result) {
+      <div class="result-summary">
+        <span><strong>{{ result.count }}</strong> records returned</span>
+        <span>{{ result.recordsScanned }} records scanned</span>
+      </div>
+
+      @if (result.results.length === 0) {
+        <div class="message-panel">
+          No records found for this query.
+        </div>
+      } @else {
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Record ID</th>
+                <th>Timestamp</th>
+                <th>Source / summary</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (record of result.results; track record.recordId) {
+                <tr
+                  [class.selected]="selectedRecord() === record"
+                  (click)="selectRecord(record)">
+                  <td class="record-id">{{ record.recordId }}</td>
+                  <td>
+                    {{ record.timestamp ?? record.fields?.[2] ?? '—' }}
+                  </td>
+                  <td class="source-cell">{{ recordSummary(record) }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      class="text-button"
+                      (click)="$event.stopPropagation(); selectRecord(record)">
+                      Inspect
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </section>
+
+  @if (selectedRecord(); as record) {
+    <section class="inspector-section">
+      <div class="inspector-heading">
+        <div>
+          <p class="eyebrow">RECORD INSPECTOR</p>
+          <h2>{{ record.recordId }}</h2>
+          <p>Dataset: {{ record.dataset | uppercase }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="selectedRecord.set(null)">
+          Close
+        </button>
+      </div>
+
+      @if (record.url) {
+        <p class="source-link">
+          <strong>Article URL:</strong>
+          <a
+            [href]="record.url"
+            target="_blank"
+            rel="noopener noreferrer">
+            Open source article
+          </a>
+        </p>
+      }
+
+      <div class="field-list">
+        @for (entry of recordEntries(record); track entry.name) {
+          <div class="field-row">
+            <div class="field-name">{{ entry.name }}</div>
+
+            <div class="field-details">
+              <div class="field-description">
+                {{ entry.description }}
+              </div>
+
+              <div class="field-value">
+                {{ entry.value }}
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (themeDictionaryLoading() && record.dataset === 'gkg') {
+        <p class="message-panel">Loading GKG theme dictionary...</p>
+      }
+
+      @if (themeDictionaryError() && record.dataset === 'gkg') {
+        <p class="message-panel error-message">
+          {{ themeDictionaryError() }}
+        </p>
+      }
+
+      <details class="raw-data">
+        <summary>View raw record JSON</summary>
+        <pre>{{ record | json }}</pre>
+      </details>
+    </section>
+  }
+</main>
