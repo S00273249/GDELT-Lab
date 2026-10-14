@@ -50,7 +50,7 @@
 
     <form
       class="search-bar"
-      (submit)="$event.preventDefault(); loadRecords()">
+      (submit)="$event.preventDefault(); searchRecords()">
       <label class="search-input">
         <span>Search records</span>
         <input
@@ -74,8 +74,15 @@
       <div class="message-panel error-message">{{ error() }}</div>
     } @else if (data(); as result) {
       <div class="result-summary">
-        <span><strong>{{ result.count }}</strong> records returned</span>
-        <span>{{ result.recordsScanned }} records scanned</span>
+        <span>
+            Showing
+            <strong>{{ firstResultIndex }}</strong>–<strong>{{ lastResultIndex }}</strong>
+            of <strong>{{ result.totalCount }}</strong> matching records
+        </span>
+
+        <span>
+            {{ data()?.recordsScanned ?? 0 | number }} records scanned
+        </span>
       </div>
 
       @if (result.results.length === 0) {
@@ -118,6 +125,65 @@
           </table>
         </div>
       }
+        @if (result.totalPages > 1) {
+        <nav class="pagination" aria-label="Dataset result pages">
+            <button
+            type="button"
+            class="pagination-button"
+            aria-label="First page"
+            title="First page"
+            [disabled]="currentPage() === 1 || loading()"
+            (click)="goToPage(1)">
+            |&lt;
+            </button>
+
+            <button
+            type="button"
+            class="pagination-button"
+            aria-label="Previous page"
+            title="Previous page"
+            [disabled]="currentPage() === 1 || loading()"
+            (click)="previousPage()">
+            &lt;
+            </button>
+
+            @for (page of pageNumbers; track page) {
+            <button
+                type="button"
+                class="pagination-button page-number"
+                [class.active]="currentPage() === page"
+                [attr.aria-current]="currentPage() === page ? 'page' : null"
+                [disabled]="loading()"
+                (click)="goToPage(page)">
+                {{ page }}
+            </button>
+            }
+
+            <button
+            type="button"
+            class="pagination-button"
+            aria-label="Next page"
+            title="Next page"
+            [disabled]="currentPage() === result.totalPages || loading()"
+            (click)="nextPage()">
+            &gt;
+            </button>
+
+            <button
+            type="button"
+            class="pagination-button"
+            aria-label="Last page"
+            title="Last page"
+            [disabled]="currentPage() === result.totalPages || loading()"
+            (click)="goToPage(result.totalPages)">
+            &gt;|
+            </button>
+        </nav>
+
+        <p class="pagination-caption">
+            Page {{ currentPage() }} of {{ result.totalPages }}
+        </p>
+        }
     }
   </section>
 

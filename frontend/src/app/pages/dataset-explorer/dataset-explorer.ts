@@ -46,6 +46,8 @@ export class DatasetExplorer {
   protected readonly selectedRecord = signal<LocalRecord | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly currentPage = signal(1);
+  protected readonly pageSize = 25;
 
   protected readonly themeDictionary =
     signal<Map<string, GkgThemeDictionaryEntry> | null>(null);
@@ -65,7 +67,8 @@ export class DatasetExplorer {
     this.api.getLocalDataset(
       this.selectedDataset(),
       this.searchText(),
-      25
+      this.pageSize,
+      this.currentPage()
     ).subscribe({
       next: response => {
         this.data.set(response);
@@ -86,6 +89,85 @@ export class DatasetExplorer {
 
   protected selectDataset(dataset: string): void {
     this.selectedDataset.set(dataset);
+    this.currentPage.set(1);
+    this.loadRecords();
+  }
+
+  protected goToPage(page: number): void {
+    const totalPages = this.data()?.totalPages ?? 0;
+
+    if (
+      page < 1 ||
+      page > totalPages ||
+      page === this.currentPage() ||
+      this.loading()
+    ) {
+      return;
+    }
+
+    this.currentPage.set(page);
+    this.loadRecords();
+  }
+
+  protected previousPage(): void {
+    this.goToPage(this.currentPage() - 1);
+  }
+
+  protected nextPage(): void {
+    this.goToPage(this.currentPage() + 1);
+  }
+
+  protected get pageNumbers(): number[] {
+    const totalPages = this.data()?.totalPages ?? 0;
+    const current = this.currentPage();
+    const maxVisible = 5;
+
+    let start = Math.max(
+      1,
+      current - Math.floor(maxVisible / 2)
+    );
+
+    let end = Math.min(
+      totalPages,
+      start + maxVisible - 1
+    );
+
+    start = Math.max(
+      1,
+      end - maxVisible + 1
+    );
+
+    return Array.from(
+      { length: end - start + 1 },
+      (_, index) => start + index
+    );
+  }
+
+  protected get firstResultIndex(): number {
+    const data = this.data();
+
+    if (!data || data.totalCount === 0) {
+      return 0;
+    }
+
+    return (this.currentPage() - 1) * this.pageSize + 1;
+  }
+
+  protected get lastResultIndex(): number {
+    const data = this.data();
+
+    if (!data) {
+      return 0;
+    }
+
+    return Math.min(
+      this.currentPage() * this.pageSize,
+      data.totalCount
+    );
+  }
+
+  protected searchRecords(): void {
+    this.currentPage.set(1);
     this.loadRecords();
   }
 

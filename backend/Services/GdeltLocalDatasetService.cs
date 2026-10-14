@@ -11,8 +11,6 @@ public class GdeltLocalDatasetService
 
     public GdeltLocalDatasetService(IWebHostEnvironment environment)
     {
-        // Resolve the location of the extracted research datasets
-        // relative to the backend project's content root.
         _dataRoot = Path.GetFullPath(
             Path.Combine(
                 environment.ContentRootPath,
@@ -22,21 +20,19 @@ public class GdeltLocalDatasetService
     }
 
     /// <summary>
-    /// Searches the selected local dataset and returns matching records.
+    /// Searches the complete selected dataset and returns one page
+    /// of matching records.
     /// </summary>
-    /// <param name="dataset">Dataset to search: events, mentions or gkg.</param>
-    /// <param name="query">Optional case-insensitive text filter.</param>
-    /// <param name="limit">Maximum number of matching records to return.</param>
-    /// <param name="cancellationToken">Token used to cancel the search.</param>
-    /// <returns>Search metadata and the matching records.</returns>
     public async Task<object> SearchAsync(
         string dataset,
         string? query,
         int limit,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int page = 1)
     {
-        // Map each supported dataset name to its folder and filename pattern.
-        var (folder, pattern) = dataset.ToLowerInvariant() switch
+        var normalisedDataset = dataset.ToLowerInvariant();
+
+        var (folder, pattern) = normalisedDataset switch
         {
             "events" => ("events", "*.export.CSV"),
             "mentions" => ("mentions", "*.mentions.CSV"),
@@ -45,16 +41,20 @@ public class GdeltLocalDatasetService
                 "Dataset must be events, mentions or gkg.")
         };
 
+        if (!Directory.Exists(_dataRoot))
+        {
+            throw new DirectoryNotFoundException(
+                $"Extracted data directory not found: {_dataRoot}");
+        }
+
         var directory = Path.Combine(_dataRoot, folder);
 
-        // Ensure the requested dataset directory exists.
         if (!Directory.Exists(directory))
         {
             throw new DirectoryNotFoundException(
                 $"Dataset directory not found: {directory}");
         }
 
-        // Find matching files and examine the most recently modified first.
         var files = Directory.GetFiles(directory, pattern)
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .ToArray();
@@ -65,33 +65,32 @@ public class GdeltLocalDatasetService
                 $"No {dataset} dataset files were found in {directory}.");
         }
 
-        var results = new List<object>();
-        var recordsScanned = 0;
+        // Keep page sizes within the supported range.
+        limit = Math.Clamp(limit, 1, 100);
+        page = Math.Max(page, 1);
+
+        var offset = ((long)page - 1) * limit;
+        var results = new List<object>(limit);
+        long totalCount = 0;
+        long recordsScanned = 0;
+
         var normalisedQuery = query?.Trim();
 
-        // Read files sequentially to avoid loading the entire dataset into memory.
+        // Scan every source file so totalCount represents all matches,
+        // not just the records displayed on the current page.
         foreach (var file in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             using var reader = new StreamReader(file);
             string? line;
 
             while ((line = await reader.ReadLineAsync(
                 cancellationToken)) is not null)
             {
-                // Stop processing promptly if the request has been cancelled.
                 cancellationToken.ThrowIfCancellationRequested();
                 recordsScanned++;
 
-                // GDELT source files use tab-separated fields.
-                var fields = line.Split('\t');
-
-                if (fields.Length == 0)
-                {
-                    continue;
-                }
-
-                // When a query is supplied, match it against the entire
-                // source line without distinguishing uppercase and lowercase.
                 if (!string.IsNullOrWhiteSpace(normalisedQuery) &&
                     !line.Contains(
                         normalisedQuery,
@@ -100,18 +99,33 @@ public class GdeltLocalDatasetService
                     continue;
                 }
 
-                if (dataset.Equals(
-                    "gkg",
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    // GKG records in the current snapshot are expected
-                    // to contain 27 fields.
-                    if (fields.Length < 27)
-                    {
-                        continue;
-                    }
+                var fields = line.Split('\t');
 
-                    // Return selected GKG columns using readable property names.
+                if (fields.Length == 0)
+                {
+                    continue;
+                }
+
+                // Preserve the existing GKG record validation.
+                if (normalisedDataset == "gkg" && fields.Length < 27)
+                {
+                    continue;
+                }
+
+                // Count every valid matching record.
+                totalCount++;
+
+                // Retain only records belonging to the requested page.
+                var zeroBasedIndex = totalCount - 1;
+
+                if (zeroBasedIndex < offset ||
+                    zeroBasedIndex >= offset + limit)
+                {
+                    continue;
+                }
+
+                if (normalisedDataset == "gkg")
+                {
                     results.Add(new
                     {
                         dataset = "gkg",
@@ -128,40 +142,30 @@ public class GdeltLocalDatasetService
                 }
                 else
                 {
-                    // Return the original fields for Events and Mentions
-                    // until dedicated response mappings are implemented.
                     results.Add(new
                     {
-                        dataset = dataset.ToLowerInvariant(),
+                        dataset = normalisedDataset,
                         recordId = fields[0],
                         fields
                     });
                 }
-
-                // Return immediately once the requested number of matches
-                // has been collected.
-                if (results.Count >= limit)
-                {
-                    return new
-                    {
-                        dataset = dataset.ToLowerInvariant(),
-                        query = normalisedQuery,
-                        filesAvailable = files.Length,
-                        count = results.Count,
-                        recordsScanned,
-                        results
-                    };
-                }
             }
         }
 
-        // Return all matches found if the search finishes before reaching the limit.
+        var totalPages = totalCount == 0
+            ? 0
+            : (int)Math.Ceiling((double)totalCount / limit);
+
         return new
         {
-            dataset = dataset.ToLowerInvariant(),
+            dataset = normalisedDataset,
             query = normalisedQuery,
             filesAvailable = files.Length,
             count = results.Count,
+            totalCount,
+            page,
+            pageSize = limit,
+            totalPages,
             recordsScanned,
             results
         };

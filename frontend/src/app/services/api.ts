@@ -1,4 +1,3 @@
-
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -27,42 +26,12 @@ export interface LocalDatasetResponse {
   query: string | null;
   filesAvailable: number;
   count: number;
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
   recordsScanned: number;
   results: LocalRecord[];
-}
-
-export interface IngestionDatasetSummary {
-  datasetType: string;
-  status: string;
-  fileCount: number;
-  recordsScanned: number;
-  recordsImported: number;
-  recordsSkipped: number;
-}
-
-export interface IngestionSummaryResponse {
-  value: IngestionDatasetSummary[];
-  Count: number;
-}
-
-export interface IngestionDatasetMeasurement {
-  datasetType: string;
-  fileCount: number;
-  completedFiles: number;
-  failedFiles: number;
-  recordsScanned: number;
-  recordsImported: number;
-  recordsSkipped: number;
-  totalProcessingSeconds: number;
-  averageSecondsPerFile: number;
-}
-
-export interface IngestionMeasurementsResponse {
-  totalFiles: number;
-  totalCompletedFiles: number;
-  totalFailedFiles: number;
-  totalRecordsImported: number;
-  datasets: IngestionDatasetMeasurement[];
 }
 
 export interface IngestionDatasetSummary {
@@ -115,9 +84,12 @@ export class Api {
   getLocalDataset(
     dataset: string,
     query: string,
-    limit = 25
+    pageSize = 25,
+    page = 1
   ): Observable<LocalDatasetResponse> {
-    let params = new HttpParams().set('limit', limit);
+    let params = new HttpParams()
+      .set('limit', pageSize)
+      .set('page', page);
 
     if (query.trim()) {
       params = params.set('query', query.trim());

@@ -152,11 +152,13 @@ namespace GDELT_Lab
                 }
             });
 
-            // Search any supported local dataset.
+
+            // Search any supported local dataset with pagination.
             app.MapGet("/api/gdelt/local/{dataset}", async (
                 string dataset,
                 string? query,
                 int? limit,
+                int? page,
                 GdeltLocalDatasetService service,
                 CancellationToken cancellationToken) =>
             {
@@ -173,8 +175,9 @@ namespace GDELT_Lab
                     var result = await service.SearchAsync(
                         dataset,
                         query,
-                        Math.Clamp(limit ?? 10, 1, 100),
-                        cancellationToken);
+                        Math.Clamp(limit ?? 25, 1, 100),
+                        cancellationToken,
+                        Math.Max(page ?? 1, 1));
 
                     return Results.Ok(result);
                 }
@@ -192,7 +195,12 @@ namespace GDELT_Lab
                         detail: ex.Message,
                         statusCode: StatusCodes.Status500InternalServerError);
                 }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { error = ex.Message });
+                }
             });
+
 
             // Import a specified GKG file.
             app.MapPost("/api/gdelt/ingest/gkg/import/{fileName}",
