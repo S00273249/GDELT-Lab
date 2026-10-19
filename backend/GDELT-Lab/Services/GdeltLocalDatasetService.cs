@@ -14,6 +14,7 @@ public class GdeltLocalDatasetService
         _dataRoot = Path.GetFullPath(
             Path.Combine(
                 environment.ContentRootPath,
+                "..", 
                 "..",
                 "research-data",
                 "extracted"));

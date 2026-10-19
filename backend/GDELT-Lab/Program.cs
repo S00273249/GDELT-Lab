@@ -1,7 +1,9 @@
 
-using GDELT_Lab.Services;
 using GDELT_Lab.Data;
+using GDELT_Lab.Services;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Xml.Linq;
 
 // dotnet run --project backend/GDELT-Lab.csproj --launch-profile http
 namespace GDELT_Lab
@@ -40,6 +42,8 @@ namespace GDELT_Lab
                 Path.Combine(
                     builder.Environment.ContentRootPath,
                     "..",
+                    "..", node--version
+npm--versionRemove - Item package -lock.json - Force - ErrorAction SilentlyContinue
                     "data"));
 
             Directory.CreateDirectory(databaseDirectory);
