@@ -1,55 +1,71 @@
 
-import { Injectable } from '@angular/core';
-import { NewsArticle } from '../models/news-article';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { map, Observable } from 'rxjs';
+
+import {
+  NewsArticle,
+  NewsArticleApiResponse
+} from '../models/news-article';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NewsArticleService {
-  private readonly articles: NewsArticle[] = [
-    {
-      id: '1',
-      source: 'BBC',
-      headline: 'Global economic outlook faces renewed uncertainty',
-      summary: 'Governments and financial institutions assess changing economic conditions and their potential international impact.',
-      publishedAt: '20 October 2026',
-      url: 'https://www.bbc.com/news',
-      themes: ['ECONOMY', 'GOVERNMENT']
-    },
-    {
-      id: '2',
-      source: 'RTÉ',
-      headline: 'European leaders discuss new policy priorities',
-      summary: 'European officials consider shared policy challenges and possible responses across member states.',
-      publishedAt: '20 October 2026',
-      url: 'https://www.rte.ie/news/',
-      themes: ['EUROPE', 'POLITICS']
-    },
-    {
-      id: '3',
-      source: 'The Guardian',
-      headline: 'International climate talks focus on future commitments',
-      summary: 'Negotiators debate environmental targets, international cooperation and the implementation of climate policies.',
-      publishedAt: '19 October 2026',
-      url: 'https://www.theguardian.com/international',
-      themes: ['CLIMATE', 'ENVIRONMENT']
-    },
-    {
-      id: '4',
-      source: 'BBC',
-      headline: 'Technology policy returns to the international agenda',
-      summary: 'Policymakers examine the opportunities and challenges associated with emerging technologies.',
-      publishedAt: '19 October 2026',
-      url: 'https://www.bbc.com/news',
-      themes: ['TECHNOLOGY', 'POLITICS']
-    }
-  ];
+  private readonly http = inject(HttpClient);
 
-  getAll(): NewsArticle[] {
-    return this.articles;
+  private readonly apiUrl = 'http://localhost:5074/api/news';
+
+  getAll(limit = 100): Observable<NewsArticle[]> {
+    return this.http
+      .get<NewsArticleApiResponse[]>(this.apiUrl, {
+        params: { limit: limit.toString() }
+      })
+      .pipe(
+        map(articles => articles.map(article => this.mapArticle(article)))
+      );
   }
 
-  getById(id: string): NewsArticle | undefined {
-    return this.articles.find(article => article.id === id);
+  getById(id: string): Observable<NewsArticle | undefined> {
+    return this.getAll().pipe(
+      map(articles => articles.find(article => article.id === id))
+    );
+  }
+
+  private mapArticle(article: NewsArticleApiResponse): NewsArticle {
+    const sourceNames: Record<string, string> = {
+      'bbc.co.uk': 'BBC News',
+      'bbc.com': 'BBC News',
+      'rte.ie': 'RTÉ News',
+      'theguardian.com': 'The Guardian',
+      'irishtimes.com': 'The Irish Times'
+    };
+
+    const themes = article.themes
+      ? [...new Set(
+          article.themes
+            .split(';')
+            .filter(Boolean)
+            .map(theme => theme.split(',')[0].replaceAll('_', ' '))
+        )].slice(0, 3)
+      : [];
+
+    return {
+      id: article.id.toString(),
+      gkgRecordId: article.gkgRecordId,
+      source: sourceNames[article.publisher ?? '']
+        ?? article.publisher
+        ?? 'Unknown publisher',
+      headline: article.headline ?? 'Untitled article',
+      summary: article.description ?? '',
+      publishedAt: article.publishedAtUtc,
+      url: article.articleUrl ?? '',
+      imageUrl: article.imageUrl,
+      themes,
+      locations: article.locations,
+      people: article.people,
+      organisations: article.organisations,
+      tone: article.tone
+    };
   }
 }

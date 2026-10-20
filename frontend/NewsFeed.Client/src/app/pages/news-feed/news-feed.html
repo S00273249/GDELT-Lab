@@ -30,43 +30,54 @@
     }
   </section>
 
-  <section class="article-list" aria-label="News articles">
-    @for (article of filteredArticles; track article.id) {
-      <article class="article-card">
-        <div class="article-topline">
-          <span class="source-label">{{ article.source }}</span>
-          <time>{{ article.publishedAt }}</time>
-        </div>
+  @if (loading) {
+    <p class="loading-state">Loading articles...</p>
+  } @else if (errorMessage) {
+    <div class="empty-state">
+      <h2>Unable to load articles</h2>
+      <p>{{ errorMessage }}</p>
+    </div>
+  }
 
-        <h2>
-          <a [routerLink]="['/article', article.id]">
-            {{ article.headline }}
-          </a>
-        </h2>
-
-        <p class="article-summary">{{ article.summary }}</p>
-
-        <div class="article-footer">
-          <div class="themes">
-            @for (theme of article.themes; track theme) {
-              <span class="theme-tag">{{ theme }}</span>
-            }
+  @if (!loading && !errorMessage) {
+    <section class="article-list" aria-label="News articles">
+      @for (article of filteredArticles; track article.id) {
+        <article class="article-card">
+          <div class="article-topline">
+            <span class="source-label">{{ article.source }}</span>
+            <time>{{ article.publishedAt }}</time>
           </div>
 
-          <a
-            class="details-link"
-            [routerLink]="['/article', article.id]">
-            View details <span aria-hidden="true">→</span>
-          </a>
+          <h2>
+            <a [routerLink]="['/article', article.id]">
+              {{ article.headline }}
+            </a>
+          </h2>
+
+          <p class="article-summary">{{ article.summary }}</p>
+
+          <div class="article-footer">
+            <div class="themes">
+              @for (theme of article.themes; track theme) {
+                <span class="theme-tag">{{ theme }}</span>
+              }
+            </div>
+
+            <a
+              class="details-link"
+              [routerLink]="['/article', article.id]">
+              View details <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state">
+          <h2>No articles found</h2>
+          <p>There are no articles for this source yet.</p>
         </div>
-      </article>
-    } @empty {
-      <div class="empty-state">
-        <h2>No articles found</h2>
-        <p>There are no articles for this source yet.</p>
-      </div>
-    }
-  </section>
+      }
+    </section>
+  }
 
   <footer class="feed-footer">
     <span>News Feed Prototype</span>

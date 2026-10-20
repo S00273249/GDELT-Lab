@@ -4,7 +4,11 @@
     <span aria-hidden="true">←</span> Back to news feed
   </a>
 
-  @if (article; as item) {
+  @if (loading) {
+    <section class="not-found">
+      <p>Loading article...</p>
+    </section>
+  } @else if (article; as item) {
     <article class="details-card">
       <header class="details-header">
         <span class="source-label">{{ item.source }}</span>
@@ -14,6 +18,13 @@
       <p class="eyebrow">ARTICLE DETAILS</p>
 
       <h1>{{ item.headline }}</h1>
+
+      @if (item.imageUrl) {
+        <img
+          class="article-image"
+          [src]="item.imageUrl"
+          [alt]="item.headline">
+      }
 
       <p class="summary">{{ item.summary }}</p>
 
@@ -39,9 +50,10 @@
           <div class="metadata-row">
             <dt>Original URL</dt>
             <dd>
-              <a [href]="item.url"
-                 target="_blank"
-                 rel="noopener noreferrer">
+              <a
+                [href]="item.url"
+                target="_blank"
+                rel="noopener noreferrer">
                 Open original article ↗
               </a>
             </dd>
@@ -55,19 +67,23 @@
         <div class="themes">
           @for (theme of item.themes; track theme) {
             <span class="theme-tag">{{ theme }}</span>
+          } @empty {
+            <p>No themes available for this article.</p>
           }
         </div>
       </div>
 
       <p class="prototype-note">
-        Prototype data only. Article metadata and themes are illustrative,
-        not retrieved from GDELT.
+        Article metadata is extracted from publisher webpages.
+        Themes and other intelligence fields originate from GDELT GKG records.
       </p>
     </article>
   } @else {
     <section class="not-found">
-      <h1>Article not found</h1>
-      <p>This article does not exist in the current prototype dataset.</p>
+      <h1>Unable to display article</h1>
+      <p>
+        {{ errorMessage || 'This article does not exist in the current prototype dataset.' }}
+      </p>
       <a routerLink="/">Return to news feed</a>
     </section>
   }

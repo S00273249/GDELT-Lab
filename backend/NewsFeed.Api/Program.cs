@@ -24,7 +24,19 @@ builder.Services.AddDbContext<NewsFeedDbContext>(options =>
 
 builder.Services.AddOpenApi();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularDev", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
+app.UseCors("AngularDev");
 
 if (app.Environment.IsDevelopment())
 {
