@@ -1,0 +1,75 @@
+
+<main class="feed-page">
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">GLOBAL NEWS MONITOR</p>
+      <h1>Latest coverage</h1>
+      <p class="subtitle">
+        Explore international news and the topics shaping global events.
+      </p>
+    </div>
+
+    <div class="article-count">
+      <span>{{ filteredArticles.length }}</span>
+      <small>articles shown</small>
+    </div>
+  </section>
+
+  <section class="filters" aria-label="Filter articles by source">
+    <span class="filter-label">SOURCE</span>
+
+    @for (source of sources; track source) {
+      <button
+        type="button"
+        class="filter-button"
+        [class.active]="selectedSource === source"
+        [attr.aria-pressed]="selectedSource === source"
+        (click)="selectSource(source)">
+        {{ source }}
+      </button>
+    }
+  </section>
+
+  <section class="article-list" aria-label="News articles">
+    @for (article of filteredArticles; track article.id) {
+      <article class="article-card">
+        <div class="article-topline">
+          <span class="source-label">{{ article.source }}</span>
+          <time>{{ article.publishedAt }}</time>
+        </div>
+
+        <h2>
+          <a [routerLink]="['/article', article.id]">
+            {{ article.headline }}
+          </a>
+        </h2>
+
+        <p class="article-summary">{{ article.summary }}</p>
+
+        <div class="article-footer">
+          <div class="themes">
+            @for (theme of article.themes; track theme) {
+              <span class="theme-tag">{{ theme }}</span>
+            }
+          </div>
+
+          <a
+            class="details-link"
+            [routerLink]="['/article', article.id]">
+            View details <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </article>
+    } @empty {
+      <div class="empty-state">
+        <h2>No articles found</h2>
+        <p>There are no articles for this source yet.</p>
+      </div>
+    }
+  </section>
+
+  <footer class="feed-footer">
+    <span>News Feed Prototype</span>
+    <span>GDELT-powered interface · Sample data</span>
+  </footer>
+</main>

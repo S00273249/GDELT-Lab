@@ -1,0 +1,74 @@
+
+<main class="details-page">
+  <a class="back-link" routerLink="/">
+    <span aria-hidden="true">←</span> Back to news feed
+  </a>
+
+  @if (article; as item) {
+    <article class="details-card">
+      <header class="details-header">
+        <span class="source-label">{{ item.source }}</span>
+        <time>{{ item.publishedAt }}</time>
+      </header>
+
+      <p class="eyebrow">ARTICLE DETAILS</p>
+
+      <h1>{{ item.headline }}</h1>
+
+      <p class="summary">{{ item.summary }}</p>
+
+      <div class="metadata-section">
+        <h2>Publication information</h2>
+
+        <dl>
+          <div class="metadata-row">
+            <dt>Source</dt>
+            <dd>{{ item.source }}</dd>
+          </div>
+
+          <div class="metadata-row">
+            <dt>Published</dt>
+            <dd>{{ item.publishedAt }}</dd>
+          </div>
+
+          <div class="metadata-row">
+            <dt>Article ID</dt>
+            <dd>{{ item.id }}</dd>
+          </div>
+
+          <div class="metadata-row">
+            <dt>Original URL</dt>
+            <dd>
+              <a [href]="item.url"
+                 target="_blank"
+                 rel="noopener noreferrer">
+                Open original article ↗
+              </a>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="metadata-section">
+        <h2>Available GDELT themes</h2>
+
+        <div class="themes">
+          @for (theme of item.themes; track theme) {
+            <span class="theme-tag">{{ theme }}</span>
+          }
+        </div>
+      </div>
+
+      <p class="prototype-note">
+        Prototype data only. Article metadata and themes are illustrative,
+        not retrieved from GDELT.
+      </p>
+    </article>
+  } @else {
+    <section class="not-found">
+      <h1>Article not found</h1>
+      <p>This article does not exist in the current prototype dataset.</p>
+      <a routerLink="/">Return to news feed</a>
+    </section>
+  }
+</main>
