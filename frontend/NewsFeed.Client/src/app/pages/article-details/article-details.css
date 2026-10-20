@@ -28,6 +28,7 @@
   width: 100%;
   max-width: 100%;
   height: auto;
+  margin-top: 20px;
   object-fit: contain;
 }
 
@@ -141,6 +142,65 @@ dd a:hover,
   font-weight: 700;
 }
 
+/* GDELT intelligence section */
+
+.intelligence-section {
+  margin-top: 4px;
+}
+
+.intelligence-intro {
+  margin: -6px 0 18px;
+  color: #657185;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.intelligence-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.intelligence-card h3 {
+  margin: 0 0 12px;
+  color: #243650;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.intelligence-card details {
+  min-width: 0;
+}
+
+.intelligence-card summary {
+  color: #315d91;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.intelligence-card summary:hover {
+  text-decoration: underline;
+}
+
+.raw-metadata {
+  margin: 14px 0 0;
+  color: #526174;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .prototype-note {
   margin: 10px 0 0;
   padding: 14px;
@@ -176,4 +236,87 @@ dd a:hover,
     grid-template-columns: 1fr;
     gap: 6px;
   }
+
+  .intelligence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entity-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.entity-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.entity-item strong {
+  color: #243650;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.entity-detail {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.coordinates {
+  font-variant-numeric: tabular-nums;
+}
+
+.tone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tone-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tone-row:last-child {
+  border-bottom: none;
+}
+
+.tone-row span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tone-row strong {
+  flex-shrink: 0;
+  color: #243650;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+
+.more-items-note {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #dbe3ee;
+  color: #526783;
+  font-size: 0.875rem;
 }

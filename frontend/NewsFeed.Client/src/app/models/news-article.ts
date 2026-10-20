@@ -32,3 +32,11 @@ export interface NewsArticleApiResponse {
   organisations: string | null;
   tone: string | null;
 }
+
+export interface NewsFeedApiPage {
+  items: NewsArticleApiResponse[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}

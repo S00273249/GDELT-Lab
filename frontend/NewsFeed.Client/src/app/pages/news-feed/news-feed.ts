@@ -25,19 +25,36 @@ export class NewsFeed implements OnInit {
   ];
 
   articles: NewsArticle[] = [];
+
+  currentPage = 1;
+  pageSize = 12;
+  totalCount = 0;
+  totalPages = 0;
+
   loading = true;
   errorMessage = '';
 
   ngOnInit(): void {
-    this.articleService.getAll().subscribe({
-      next: articles => {
-        this.articles = articles.filter(article =>
+    this.loadPage(1);
+  }
+
+  loadPage(page: number): void {
+    this.loading = true;
+    this.errorMessage = '';
+
+    this.articleService.getPage(page, this.pageSize).subscribe({
+      next: response => {
+        this.articles = response.items.filter(article =>
           article.url &&
           article.headline &&
           article.source
         );
 
+        this.currentPage = response.page;
+        this.totalCount = response.totalCount;
+        this.totalPages = response.totalPages;
         this.loading = false;
+
         this.cdr.markForCheck();
       },
       error: error => {
@@ -65,4 +82,24 @@ export class NewsFeed implements OnInit {
   selectSource(source: string): void {
     this.selectedSource = source;
   }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.loadPage(this.currentPage - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.loadPage(this.currentPage + 1);
+    }
+  }
+
+  onImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+
+    image.style.display = 'none';
+    image.parentElement?.classList.add('image-fallback');
+  }
+
 }

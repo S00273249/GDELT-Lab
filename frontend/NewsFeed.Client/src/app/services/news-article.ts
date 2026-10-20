@@ -1,12 +1,16 @@
 
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { map, Observable, catchError, of, throwError } from 'rxjs';
+import { NewsArticle, NewsArticleApiResponse, NewsFeedApiPage } from '../models/news-article';
 
-import {
-  NewsArticle,
-  NewsArticleApiResponse
-} from '../models/news-article';
+export interface NewsArticlePage {
+  items: NewsArticle[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -16,21 +20,48 @@ export class NewsArticleService {
 
   private readonly apiUrl = 'http://localhost:5074/api/news';
 
-  getAll(limit = 100): Observable<NewsArticle[]> {
+  getPage(page = 1, pageSize = 12): Observable<NewsArticlePage> {
     return this.http
-      .get<NewsArticleApiResponse[]>(this.apiUrl, {
-        params: { limit: limit.toString() }
+      .get<NewsFeedApiPage>(this.apiUrl, {
+        params: {
+          page: page.toString(),
+          pageSize: pageSize.toString()
+        }
       })
       .pipe(
-        map(articles => articles.map(article => this.mapArticle(article)))
+        map(response => ({
+          items: response.items.map(article => this.mapArticle(article)),
+          page: response.page,
+          pageSize: response.pageSize,
+          totalCount: response.totalCount,
+          totalPages: response.totalPages
+        }))
       );
   }
 
-  getById(id: string): Observable<NewsArticle | undefined> {
-    return this.getAll().pipe(
-      map(articles => articles.find(article => article.id === id))
+  // Keeps existing callers working while returning the first page.
+  getAll(pageSize = 12): Observable<NewsArticle[]> {
+    return this.getPage(1, pageSize).pipe(
+      map(response => response.items)
     );
   }
+
+
+  getById(id: string): Observable<NewsArticle | undefined> {
+    return this.http
+      .get<NewsArticleApiResponse>(`${this.apiUrl}/${id}`)
+      .pipe(
+        map(article => this.mapArticle(article)),
+        catchError((error: HttpErrorResponse) => {
+          if (error.status === 404) {
+            return of(undefined);
+          }
+
+          return throwError(() => error);
+        })
+      );
+  }
+
 
   private mapArticle(article: NewsArticleApiResponse): NewsArticle {
     const sourceNames: Record<string, string> = {

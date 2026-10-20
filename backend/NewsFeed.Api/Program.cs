@@ -36,6 +36,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
 app.UseCors("AngularDev");
 
 if (app.Environment.IsDevelopment())
@@ -45,17 +46,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Return successfully enriched articles for the initial news feed.
-// Failed records and BBC Sounds audio pages remain in storage but are
-// excluded from this endpoint.
+// Return eligible, enriched articles using database-level pagination.
 app.MapGet("/api/news", async (
     NewsFeedDbContext dbContext,
-    int? limit,
+    int? page,
+    int? pageSize,
     CancellationToken cancellationToken) =>
 {
-    var resultLimit = Math.Clamp(limit ?? 50, 1, 100);
+    var currentPage = Math.Max(page ?? 1, 1);
+    var resultPageSize = Math.Clamp(pageSize ?? 12, 1, 50);
 
-    var articles = await dbContext.NewsArticles
+    // Keep the eligibility rules identical for the count and article queries.
+    var eligibleArticles = dbContext.NewsArticles
         .AsNoTracking()
         .Where(article =>
             article.MetadataExtractionStatus == "Success")
@@ -68,21 +70,37 @@ app.MapGet("/api/news", async (
         .Where(article =>
             !EF.Functions.Like(
                 article.DocumentIdentifier!,
-                "%/sounds/play/%"))
+                "%/sounds/play/%"));
+
+    var totalCount = await eligibleArticles.CountAsync(
+        cancellationToken);
+
+    var totalPages = (int)Math.Ceiling(
+        totalCount / (double)resultPageSize);
+
+    var articles = await eligibleArticles
         .OrderByDescending(article => article.RecordTimestampUtc)
-        .Take(resultLimit)
+        .ThenByDescending(article => article.Id)
+        .Skip((currentPage - 1) * resultPageSize)
+        .Take(resultPageSize)
         .Select(article => new
         {
             article.Id,
             article.GkgRecordId,
             Headline = article.Headline,
             Description = article.Description,
-            ImageUrl = article.ImageUrl,
+
+            // Prefer publisher metadata, then use the GDELT image.
+            ImageUrl =
+                !string.IsNullOrWhiteSpace(article.ImageUrl)
+                    ? article.ImageUrl
+                    : article.GdeltSharingImage,
+
             Publisher = article.SourceCommonName,
             PublishedAtUtc = article.RecordTimestampUtc,
             ArticleUrl = article.DocumentIdentifier,
 
-            // Original GDELT intelligence fields for future UI features.
+            // Original GDELT intelligence fields.
             Themes = article.V2Themes,
             Locations = article.V2Locations,
             People = article.V2Persons,
@@ -91,9 +109,66 @@ app.MapGet("/api/news", async (
         })
         .ToListAsync(cancellationToken);
 
-    return Results.Ok(articles);
+    return Results.Ok(new
+    {
+        Items = articles,
+        Page = currentPage,
+        PageSize = resultPageSize,
+        TotalCount = totalCount,
+        TotalPages = totalPages
+    });
 })
 .WithName("GetNewsArticles")
-.WithSummary("Get enriched news articles for the news feed");
+.WithSummary("Get paginated, enriched news articles");
+
+
+app.MapGet("/api/news/{id:int}", async (
+    int id,
+    NewsFeedDbContext dbContext,
+    CancellationToken cancellationToken) =>
+{
+    var article = await dbContext.NewsArticles
+        .AsNoTracking()
+        .Where(article => article.Id == id)
+        .Where(article =>
+            article.MetadataExtractionStatus == "Success")
+        .Where(article =>
+            article.Headline != null &&
+            article.Headline != "")
+        .Where(article =>
+            article.DocumentIdentifier != null &&
+            article.DocumentIdentifier != "")
+        .Where(article =>
+            !EF.Functions.Like(
+                article.DocumentIdentifier!,
+                "%/sounds/play/%"))
+        .Select(article => new
+        {
+            article.Id,
+            article.GkgRecordId,
+            Headline = article.Headline,
+            Description = article.Description,
+            ImageUrl =
+                !string.IsNullOrWhiteSpace(article.ImageUrl)
+                    ? article.ImageUrl
+                    : article.GdeltSharingImage,
+            Publisher = article.SourceCommonName,
+            PublishedAtUtc = article.RecordTimestampUtc,
+            ArticleUrl = article.DocumentIdentifier,
+            Themes = article.V2Themes,
+            Locations = article.V2Locations,
+            People = article.V2Persons,
+            Organisations = article.V2Organizations,
+            Tone = article.V2Tone
+        })
+        .FirstOrDefaultAsync(cancellationToken);
+
+    return article is null
+        ? Results.NotFound()
+        : Results.Ok(article);
+})
+.WithName("GetNewsArticleById")
+.WithSummary("Get a single enriched news article by ID");
+
 
 app.Run();
