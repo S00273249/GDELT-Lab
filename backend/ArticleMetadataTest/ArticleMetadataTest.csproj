@@ -9,6 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.8.5" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArticleMetadata\ArticleMetadata.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,12 +1,31 @@
+
+using Microsoft.EntityFrameworkCore;
+using NewsFeed.Api.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// Configure the separate news-feed prototype database.
+var repositoryRoot = Path.GetFullPath(
+    Path.Combine(builder.Environment.ContentRootPath, "..", ".."));
+
+var databaseDirectory = Path.Combine(
+    repositoryRoot,
+    "research-data",
+    "news-feed");
+
+Directory.CreateDirectory(databaseDirectory);
+
+var databasePath = Path.Combine(
+    databaseDirectory,
+    "news-feed.db");
+
+builder.Services.AddDbContext<NewsFeedDbContext>(options =>
+    options.UseSqlite($"Data Source={databasePath}"));
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -14,28 +33,55 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+// Return successfully enriched articles for the initial news feed.
+// Failed records and BBC Sounds audio pages remain in storage but are
+// excluded from this endpoint.
+app.MapGet("/api/news", async (
+    NewsFeedDbContext dbContext,
+    int? limit,
+    CancellationToken cancellationToken) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    var resultLimit = Math.Clamp(limit ?? 50, 1, 100);
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var articles = await dbContext.NewsArticles
+        .AsNoTracking()
+        .Where(article =>
+            article.MetadataExtractionStatus == "Success")
+        .Where(article =>
+            article.Headline != null &&
+            article.Headline != "")
+        .Where(article =>
+            article.DocumentIdentifier != null &&
+            article.DocumentIdentifier != "")
+        .Where(article =>
+            !EF.Functions.Like(
+                article.DocumentIdentifier!,
+                "%/sounds/play/%"))
+        .OrderByDescending(article => article.RecordTimestampUtc)
+        .Take(resultLimit)
+        .Select(article => new
+        {
+            article.Id,
+            article.GkgRecordId,
+            Headline = article.Headline,
+            Description = article.Description,
+            ImageUrl = article.ImageUrl,
+            Publisher = article.SourceCommonName,
+            PublishedAtUtc = article.RecordTimestampUtc,
+            ArticleUrl = article.DocumentIdentifier,
+
+            // Original GDELT intelligence fields for future UI features.
+            Themes = article.V2Themes,
+            Locations = article.V2Locations,
+            People = article.V2Persons,
+            Organisations = article.V2Organizations,
+            Tone = article.V2Tone
+        })
+        .ToListAsync(cancellationToken);
+
+    return Results.Ok(articles);
 })
-.WithName("GetWeatherForecast");
+.WithName("GetNewsArticles")
+.WithSummary("Get enriched news articles for the news feed");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
