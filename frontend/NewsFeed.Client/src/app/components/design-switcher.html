@@ -1,0 +1,28 @@
+
+<nav class="design-switcher" aria-label="Choose news feed design">
+  <span class="switcher-label">Design</span>
+
+  <a
+    [routerLink]="getTargetUrl('a')"
+    class="design-option"
+    [class.active]="isActive('a')"
+    [attr.aria-current]="isActive('a') ? 'page' : null">
+    A <span class="design-name">Original</span>
+  </a>
+
+  <a
+    [routerLink]="getTargetUrl('b')"
+    class="design-option"
+    [class.active]="isActive('b')"
+    [attr.aria-current]="isActive('b') ? 'page' : null">
+    B <span class="design-name">Alternative</span>
+  </a>
+
+  <a
+    [routerLink]="getTargetUrl('c')"
+    class="design-option"
+    [class.active]="isActive('c')"
+    [attr.aria-current]="isActive('c') ? 'page' : null">
+    C <span class="design-name">Alternative</span>
+  </a>
+</nav>

@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { NewsArticle } from '../../models/news-article';
 import { NewsArticleService } from '../../services/news-article';
+import { DesignSwitcher } from '../../components/design-switcher';
 
 interface GdeltLocation {
   name: string;
@@ -26,7 +27,7 @@ interface GdeltToneMetric {
 
 @Component({
   selector: 'app-article-details',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, DesignSwitcher],
   templateUrl: './article-details.html',
   styleUrl: './article-details.css'
 })

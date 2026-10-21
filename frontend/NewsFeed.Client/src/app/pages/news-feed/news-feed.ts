@@ -3,10 +3,11 @@ import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NewsArticle } from '../../models/news-article';
 import { NewsArticleService } from '../../services/news-article';
+import { DesignSwitcher } from '../../components/design-switcher';
 
 @Component({
   selector: 'app-news-feed',
-  imports: [RouterLink],
+  imports: [RouterLink, DesignSwitcher],
   templateUrl: './news-feed.html',
   styleUrl: './news-feed.css'
 })

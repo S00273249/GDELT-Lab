@@ -1,0 +1,134 @@
+<app-design-switcher></app-design-switcher>
+
+<main class="feed-page">
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">GLOBAL NEWS MONITOR</p>
+      <h1>Latest coverage</h1>
+      <p class="subtitle">
+        Explore international news and the topics shaping global events.
+      </p>
+    </div>
+
+    <div class="article-count">
+      <span>{{ totalCount }}</span>
+      <small>articles available</small>
+    </div>
+  </section>
+
+  <section class="filters" aria-label="Filter articles by source">
+    <span class="filter-label">SOURCE</span>
+
+    @for (source of sources; track source) {
+      <button
+        type="button"
+        class="filter-button"
+        [class.active]="selectedSource === source"
+        [attr.aria-pressed]="selectedSource === source"
+        (click)="selectSource(source)">
+        {{ source }}
+      </button>
+    }
+  </section>
+
+  @if (loading) {
+    <p class="loading-state">Loading articles...</p>
+  } @else if (errorMessage) {
+    <div class="empty-state">
+      <h2>Unable to load articles</h2>
+      <p>{{ errorMessage }}</p>
+    </div>
+  }
+
+  @if (!loading && !errorMessage) {
+    <section class="article-list" aria-label="News articles">
+      @for (article of filteredArticles; track article.id) {
+        <article class="article-card">
+          <div class="article-image-wrapper">
+            @if (article.imageUrl) {
+              <img
+                class="article-thumbnail"
+                [src]="article.imageUrl"
+                [alt]="article.headline"
+                loading="lazy"
+                (error)="onImageError($event)" />
+
+              <div class="image-placeholder">
+                <span>Image unavailable</span>
+              </div>
+            } @else {
+              <div class="image-placeholder">
+                <span>No image available</span>
+              </div>
+            }
+          </div>
+
+          <div class="article-content">
+            <div class="article-topline">
+              <span class="source-label">{{ article.source }}</span>
+              <time [attr.datetime]="article.publishedAt">
+                {{ article.publishedAt }}
+              </time>
+            </div>
+
+            <h2>
+              <a [routerLink]="['/article', article.id]">
+                {{ article.headline }}
+              </a>
+            </h2>
+
+            <p class="article-summary">{{ article.summary }}</p>
+
+            <div class="article-footer">
+              <div class="themes">
+                @for (theme of article.themes; track theme) {
+                  <span class="theme-tag">{{ theme }}</span>
+                }
+              </div>
+
+              <a
+                class="details-link"
+                [routerLink]="['/article', article.id]">
+                View details <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state">
+          <h2>No articles found</h2>
+          <p>There are no articles for this source on this page.</p>
+        </div>
+      }
+    </section>
+
+    @if (totalPages > 1) {
+      <nav class="pagination" aria-label="News article pages">
+        <button
+          type="button"
+          class="pagination-button"
+          [disabled]="currentPage <= 1 || loading"
+          (click)="previousPage()">
+          ← Previous
+        </button>
+
+        <span class="page-indicator">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+
+        <button
+          type="button"
+          class="pagination-button"
+          [disabled]="currentPage >= totalPages || loading"
+          (click)="nextPage()">
+          Next →
+        </button>
+      </nav>
+    }
+  }
+
+  <footer class="feed-footer">
+    <span>News Feed Prototype</span>
+    <span>GDELT-powered interface · Sample data</span>
+  </footer>
+</main>
