@@ -1,7 +1,8 @@
+
 <app-design-switcher></app-design-switcher>
 
 <main class="details-page">
-  <a class="back-link" routerLink="/">
+  <a class="back-link" routerLink="/feed/b">
     <span aria-hidden="true">←</span> Back to news feed
   </a>
 
@@ -16,7 +17,7 @@
         <time>{{ item.publishedAt | date:'d MMM y, HH:mm' }}</time>
       </header>
 
-      <p class="eyebrow">ARTICLE DETAILS</p>
+      <p class="eyebrow">GLOBAL NEWS MONITOR / ARTICLE</p>
       <h1>{{ item.headline }}</h1>
 
       @if (item.imageUrl) {
@@ -28,7 +29,7 @@
 
       <p class="summary">{{ item.summary }}</p>
 
-      <div class="metadata-section">
+      <div class="metadata-section publication-section">
         <h2>Publication information</h2>
 
         <dl>
@@ -66,7 +67,7 @@
 
         <div class="themes">
           @for (theme of item.themes; track theme) {
-            <span class="theme-tag">{{ theme }}</span>
+            <span class="theme-tag">{{ formatTheme(theme) }}</span>
           } @empty {
             <p>No themes available for this article.</p>
           }
@@ -74,6 +75,7 @@
       </div>
 
       <div class="metadata-section intelligence-section">
+        <p class="eyebrow">STRUCTURED DATA</p>
         <h2>GDELT Intelligence</h2>
 
         <p class="intelligence-intro">
@@ -180,16 +182,21 @@
         Article metadata is extracted from publisher webpages.
         Themes and other intelligence fields originate from GDELT GKG records.
       </p>
+
+      <a class="bottom-back-link" routerLink="/feed/b">
+        ← Return to latest coverage
+      </a>
     </article>
   } @else {
     <section class="not-found">
+      <p class="eyebrow">ARTICLE UNAVAILABLE</p>
       <h1>Unable to display article</h1>
 
       <p>
         {{ errorMessage || 'This article does not exist in the current prototype dataset.' }}
       </p>
 
-      <a routerLink="/">Return to news feed</a>
+      <a routerLink="/feed/b">Return to news feed</a>
     </section>
   }
 </main>

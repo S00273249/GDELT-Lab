@@ -1,0 +1,195 @@
+<app-design-switcher></app-design-switcher>
+
+<main class="details-page">
+  <a class="back-link" routerLink="/feed/e">
+    <span aria-hidden="true">←</span> Back to news feed
+  </a>
+
+  @if (loading) {
+    <section class="not-found">
+      <p>Loading article...</p>
+    </section>
+  } @else if (article; as item) {
+    <article class="details-card">
+      <header class="details-header">
+        <span class="source-label">{{ item.source }}</span>
+        <time>{{ item.publishedAt | date:'d MMM y, HH:mm' }}</time>
+      </header>
+
+      <p class="eyebrow">ARTICLE DETAILS</p>
+      <h1>{{ item.headline }}</h1>
+
+      @if (item.imageUrl) {
+        <img
+          class="article-image"
+          [src]="item.imageUrl"
+          [alt]="item.headline">
+      }
+
+      <p class="summary">{{ item.summary }}</p>
+
+      <div class="metadata-section">
+        <h2>Publication information</h2>
+
+        <dl>
+          <div class="metadata-row">
+            <dt>Source</dt>
+            <dd>{{ item.source }}</dd>
+          </div>
+
+          <div class="metadata-row">
+            <dt>Published</dt>
+            <dd>{{ item.publishedAt | date:'d MMM y, HH:mm' }}</dd>
+          </div>
+
+          <div class="metadata-row">
+            <dt>Article ID</dt>
+            <dd>{{ item.id }}</dd>
+          </div>
+
+          <div class="metadata-row">
+            <dt>Original URL</dt>
+            <dd>
+              <a
+                [href]="item.url"
+                target="_blank"
+                rel="noopener noreferrer">
+                Open original article ↗
+              </a>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="metadata-section">
+        <h2>Available GDELT themes</h2>
+
+        <div class="themes">
+          @for (theme of item.themes; track theme) {
+            <span class="theme-tag">{{ formatTheme(theme) }}</span>
+          } @empty {
+            <p>No themes available for this article.</p>
+          }
+        </div>
+      </div>
+
+      <div class="metadata-section intelligence-section">
+        <h2>GDELT Intelligence</h2>
+
+        <p class="intelligence-intro">
+          Entities and analytical data associated with this article
+          in the GDELT Global Knowledge Graph.
+        </p>
+
+        <div class="intelligence-grid">
+          @if (parsedLocations.length > 0) {
+            <section class="intelligence-card">
+              <h3>Locations</h3>
+
+              <div class="entity-list">
+                @for (location of visibleLocations; track $index) {
+                  <div class="entity-item">
+                    <strong>{{ location.name }}</strong>
+
+                    @if (location.countryCode) {
+                      <span class="entity-detail">
+                        {{ location.countryCode }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (hiddenLocationCount > 0) {
+                <p class="more-items-note">
+                  {{ hiddenLocationCount }} more
+                  {{ hiddenLocationCount === 1 ? 'location' : 'locations' }}
+                  not shown.
+                </p>
+              }
+            </section>
+          }
+
+          @if (parsedPeople.length > 0) {
+            <section class="intelligence-card">
+              <h3>People</h3>
+
+              <div class="entity-list">
+                @for (person of parsedPeople; track $index) {
+                  <div class="entity-item">
+                    <strong>{{ person.name }}</strong>
+
+                    @if (person.count !== null) {
+                      <span class="entity-detail">
+                        GDELT count: {{ person.count }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          @if (parsedOrganisations.length > 0) {
+            <section class="intelligence-card">
+              <h3>Organisations</h3>
+
+              <div class="entity-list">
+                @for (organisation of parsedOrganisations; track $index) {
+                  <div class="entity-item">
+                    <strong>{{ organisation.name }}</strong>
+
+                    @if (organisation.count !== null) {
+                      <span class="entity-detail">
+                        GDELT count: {{ organisation.count }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          @if (parsedTone.length > 0) {
+            <section class="intelligence-card">
+              <h3>Tone analysis</h3>
+
+              <div class="tone-list">
+                @for (metric of parsedTone; track metric.label) {
+                  <div class="tone-row">
+                    <span>{{ metric.label }}</span>
+                    <strong>{{ metric.displayValue }}</strong>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+        </div>
+
+        @if (
+          parsedLocations.length === 0 &&
+          parsedPeople.length === 0 &&
+          parsedOrganisations.length === 0 &&
+          parsedTone.length === 0
+        ) {
+          <p>No additional GDELT intelligence data is available.</p>
+        }
+      </div>
+
+      <p class="prototype-note">
+        Article metadata is extracted from publisher webpages.
+        Themes and other intelligence fields originate from GDELT GKG records.
+      </p>
+    </article>
+  } @else {
+    <section class="not-found">
+      <h1>Unable to display article</h1>
+
+      <p>
+        {{ errorMessage || 'This article does not exist in the current prototype dataset.' }}
+      </p>
+
+      <a routerLink="/">Return to news feed</a>
+    </section>
+  }
+</main>

@@ -72,7 +72,7 @@
             </div>
 
             <h2>
-              <a [routerLink]="['/article', article.id]">
+              <a [routerLink]="['/article/', 'c', article.id]">
                 {{ article.headline }}
               </a>
             </h2>
@@ -82,13 +82,13 @@
             <div class="article-footer">
               <div class="themes">
                 @for (theme of article.themes; track theme) {
-                  <span class="theme-tag">{{ theme }}</span>
+                  <span class="theme-tag">{{ formatTheme(theme) }}</span>
                 }
               </div>
 
               <a
                 class="details-link"
-                [routerLink]="['/article', article.id]">
+                [routerLink]="['/article', 'c', article.id]">
                 View details <span aria-hidden="true">→</span>
               </a>
             </div>

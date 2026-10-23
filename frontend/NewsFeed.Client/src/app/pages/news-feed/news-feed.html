@@ -82,7 +82,7 @@
             <div class="article-footer">
               <div class="themes">
                 @for (theme of article.themes; track theme) {
-                  <span class="theme-tag">{{ theme }}</span>
+                  <span class="theme-tag">{{ formatTheme(theme) }}</span>
                 }
               </div>
 

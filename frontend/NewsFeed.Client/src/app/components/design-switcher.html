@@ -23,6 +23,22 @@
     class="design-option"
     [class.active]="isActive('c')"
     [attr.aria-current]="isActive('c') ? 'page' : null">
-    C <span class="design-name">Alternative</span>
+    C <span class="design-name">Newsroom</span>
+  </a>
+
+  <a
+    [routerLink]="getTargetUrl('d')"
+    class="design-option"
+    [class.active]="isActive('d')"
+    [attr.aria-current]="isActive('d') ? 'page' : null">
+    D <span class="design-name">Intelligence</span>
+  </a>
+
+  <a
+    [routerLink]="getTargetUrl('e')"
+    class="design-option"
+    [class.active]="isActive('e')"
+    [attr.aria-current]="isActive('e') ? 'page' : null">
+    E <span class="design-name">Minimalist</span>
   </a>
 </nav>

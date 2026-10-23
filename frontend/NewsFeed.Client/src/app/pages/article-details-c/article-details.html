@@ -1,7 +1,7 @@
 <app-design-switcher></app-design-switcher>
 
 <main class="details-page">
-  <a class="back-link" routerLink="/">
+  <a class="back-link" routerLink="/feed/c">
     <span aria-hidden="true">←</span> Back to news feed
   </a>
 
@@ -66,7 +66,7 @@
 
         <div class="themes">
           @for (theme of item.themes; track theme) {
-            <span class="theme-tag">{{ theme }}</span>
+            <span class="theme-tag">{{ formatTheme(theme) }}</span>
           } @empty {
             <p>No themes available for this article.</p>
           }

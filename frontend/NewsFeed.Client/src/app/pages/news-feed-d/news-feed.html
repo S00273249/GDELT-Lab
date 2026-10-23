@@ -1,0 +1,218 @@
+
+<app-design-switcher></app-design-switcher>
+
+<main class="feed-page">
+  <header class="dashboard-header">
+    <div class="brand-block">
+      <div class="brand-mark" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div>
+        <p class="eyebrow">INTELLIGENCE PLATFORM / 001</p>
+        <h1>Global Monitor<span class="title-period">.</span></h1>
+      </div>
+    </div>
+
+    <div class="system-status">
+      <span class="status-indicator"></span>
+      <span>MONITORING ACTIVE</span>
+      <span class="status-divider"></span>
+      <span class="system-label">GDELT DATA</span>
+    </div>
+  </header>
+
+  <section class="overview-panel">
+    <div class="overview-copy">
+      <p class="section-index">01 / SITUATION OVERVIEW</p>
+      <h2>Global news intelligence</h2>
+      <p class="subtitle">
+        Monitor international reporting, identify emerging topics and
+        explore the information surrounding global events.
+      </p>
+    </div>
+
+    <div class="overview-stat">
+      <span class="stat-label">AVAILABLE RECORDS</span>
+      <strong>{{ totalCount }}</strong>
+      <span class="stat-caption">
+        Articles in the current dataset
+      </span>
+    </div>
+  </section>
+
+  <section class="control-panel" aria-label="News feed controls">
+    <div class="control-heading">
+      <span class="section-index">02 / SOURCE SELECTION</span>
+      <span class="control-description">Filter intelligence by publisher</span>
+    </div>
+
+    <div class="filters" aria-label="Filter articles by source">
+      @for (source of sources; track source) {
+        <button
+          type="button"
+          class="filter-button"
+          [class.active]="selectedSource === source"
+          [attr.aria-pressed]="selectedSource === source"
+          (click)="selectSource(source)">
+          <span class="filter-indicator"></span>
+          {{ source }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="feed-section">
+    <div class="feed-section-heading">
+      <div>
+        <p class="section-index">03 / INTELLIGENCE STREAM</p>
+        <h2>Latest reporting</h2>
+      </div>
+
+      <span class="stream-label">
+        <span class="status-indicator"></span>
+        {{ selectedSource === 'All sources' ? 'ALL PUBLISHERS' : selectedSource }}
+      </span>
+    </div>
+
+    @if (loading) {
+      <div class="loading-state">
+        <span class="loading-indicator"></span>
+        <p>Retrieving intelligence records...</p>
+      </div>
+    } @else if (errorMessage) {
+      <div class="empty-state">
+        <span class="state-code">ERR / FEED</span>
+        <h2>Unable to load intelligence</h2>
+        <p>{{ errorMessage }}</p>
+      </div>
+    }
+
+    @if (!loading && !errorMessage) {
+      <section class="article-list" aria-label="News articles">
+        @for (article of filteredArticles; track article.id) {
+          <article class="article-card">
+            <div class="article-index">
+              <span>RECORD ID</span>
+              <strong>{{ article.id }}</strong>
+            </div>
+
+            <div class="article-image-wrapper">
+              @if (article.imageUrl) {
+                <img
+                  class="article-thumbnail"
+                  [src]="article.imageUrl"
+                  [alt]="article.headline"
+                  loading="lazy"
+                  (error)="onImageError($event)" />
+
+                <div class="image-placeholder">
+                  <span>IMAGE UNAVAILABLE</span>
+                </div>
+              } @else {
+                <div class="image-placeholder">
+                  <span>NO IMAGE AVAILABLE</span>
+                </div>
+              }
+            </div>
+
+            <div class="article-content">
+              <div class="article-topline">
+                <span class="source-label">
+                  <span class="source-indicator"></span>
+                  {{ article.source }}
+                </span>
+
+                <time [attr.datetime]="article.publishedAt">
+                  {{ article.publishedAt }}
+                </time>
+              </div>
+
+              <h3>
+                <a [routerLink]="['/article/', 'd', article.id]">
+                  {{ article.headline }}
+                </a>
+              </h3>
+
+              <p class="article-summary">{{ article.summary }}</p>
+
+              <div class="article-footer">
+                <div class="theme-section">
+                  <span class="metadata-label">ASSOCIATED THEMES</span>
+
+                  <div class="themes">
+                    @for (theme of article.themes; track theme) {
+                      <span class="theme-tag">
+                        {{ formatTheme(theme) }}
+                      </span>
+                    } @empty {
+                      <span class="no-themes">No themes recorded</span>
+                    }
+                  </div>
+                </div>
+
+                <a
+                  class="details-link"
+                  [routerLink]="['/article/', 'd', article.id]"
+                  [attr.aria-label]="'View intelligence details for ' + article.headline">
+                  ANALYSE RECORD
+                  <span aria-hidden="true">↗</span>
+                </a>
+              </div>
+            </div>
+          </article>
+        } @empty {
+          <div class="empty-state">
+            <span class="state-code">QUERY / NO RESULTS</span>
+            <h2>No matching records</h2>
+            <p>
+              There are no articles for this source on the current page.
+              Try another source or move to a different page.
+            </p>
+          </div>
+        }
+      </section>
+    }
+
+    @if (!loading && !errorMessage && totalPages > 1) {
+      <nav class="pagination" aria-label="News article pages">
+        <button
+          type="button"
+          class="pagination-button"
+          [disabled]="currentPage <= 1 || loading"
+          (click)="previousPage()">
+          <span aria-hidden="true">←</span>
+          Previous
+        </button>
+
+        <div class="page-indicator">
+          <span class="page-label">CURRENT PAGE</span>
+          <strong>{{ currentPage }}</strong>
+          <span class="page-divider">/</span>
+          <span>{{ totalPages }}</span>
+        </div>
+
+        <button
+          type="button"
+          class="pagination-button"
+          [disabled]="currentPage >= totalPages || loading"
+          (click)="nextPage()">
+          Next
+          <span aria-hidden="true">→</span>
+        </button>
+      </nav>
+    }
+  </section>
+
+  <footer class="feed-footer">
+    <div class="footer-brand">
+      <span class="footer-mark" aria-hidden="true">GM</span>
+      <span>GLOBAL MONITOR</span>
+    </div>
+
+    <span>GDELT GLOBAL KNOWLEDGE GRAPH</span>
+    <span>PROTOTYPE / SAMPLE DATA</span>
+  </footer>
+</main>

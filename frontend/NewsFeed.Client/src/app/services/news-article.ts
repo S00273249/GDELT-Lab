@@ -20,14 +20,25 @@ export class NewsArticleService {
 
   private readonly apiUrl = 'http://localhost:5074/api/news';
 
-  getPage(page = 1, pageSize = 12): Observable<NewsArticlePage> {
+  getPage(
+    page = 1,
+    pageSize = 12,
+    source?: string
+  ): Observable<NewsArticlePage> {
+    let params: Record<string, string> = {
+      page: page.toString(),
+      pageSize: pageSize.toString()
+    };
+
+    if (source && source !== 'All sources') {
+      params = {
+        ...params,
+        source
+      };
+    }
+
     return this.http
-      .get<NewsFeedApiPage>(this.apiUrl, {
-        params: {
-          page: page.toString(),
-          pageSize: pageSize.toString()
-        }
-      })
+      .get<NewsFeedApiPage>(this.apiUrl, { params })
       .pipe(
         map(response => ({
           items: response.items.map(article => this.mapArticle(article)),

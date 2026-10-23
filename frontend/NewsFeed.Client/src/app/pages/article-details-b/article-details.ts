@@ -2,10 +2,11 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 import { NewsArticle } from '../../models/news-article';
 import { NewsArticleService } from '../../services/news-article';
 import { DesignSwitcher } from '../../components/design-switcher';
+import { GkgThemeService } from '../../services/gkg-theme.service';
 
 interface GdeltLocation {
   name: string;
@@ -26,7 +27,7 @@ interface GdeltToneMetric {
 }
 
 @Component({
-  selector: 'app-article-details-b',
+  selector: 'app-article-details',
   imports: [RouterLink, DatePipe, DesignSwitcher],
   templateUrl: './article-details.html',
   styleUrl: './article-details.css'
@@ -35,6 +36,7 @@ export class ArticleDetailsB implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly articleService = inject(NewsArticleService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly gkgThemeService = inject(GkgThemeService);
 
   article?: NewsArticle;
   loading = true;
@@ -49,8 +51,10 @@ export class ArticleDetailsB implements OnInit {
       return;
     }
 
-    this.articleService.getById(id)
+    // Wait for the GDELT theme dictionary before loading the article.
+    this.gkgThemeService.loadDictionary()
       .pipe(
+        switchMap(() => this.articleService.getById(id)),
         finalize(() => {
           this.loading = false;
           this.cdr.detectChanges();
@@ -71,6 +75,10 @@ export class ArticleDetailsB implements OnInit {
             'Unable to load this article. Check that the News Feed API is running.';
         }
       });
+  }
+
+  formatTheme(theme: string): string {
+    return this.gkgThemeService.formatTheme(theme);
   }
 
   get parsedLocations(): GdeltLocation[] {
@@ -165,7 +173,6 @@ export class ArticleDetailsB implements OnInit {
     }));
   }
 
-
   private parseLocations(raw: string | null | undefined): GdeltLocation[] {
     if (!raw) {
       return [];
@@ -248,7 +255,6 @@ export class ArticleDetailsB implements OnInit {
       return true;
     });
   }
-
 
   private getUniqueEntities(entities: GdeltEntity[]): GdeltEntity[] {
     const seen = new Set<string>();

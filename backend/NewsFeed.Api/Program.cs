@@ -1,4 +1,4 @@
-
+// dotnet run --project .\backend\NewsFeed.Api\NewsFeed.Api.csproj
 using Microsoft.EntityFrameworkCore;
 using NewsFeed.Api.Data;
 
@@ -51,6 +51,7 @@ app.MapGet("/api/news", async (
     NewsFeedDbContext dbContext,
     int? page,
     int? pageSize,
+    string? source,
     CancellationToken cancellationToken) =>
 {
     var currentPage = Math.Max(page ?? 1, 1);
@@ -72,6 +73,58 @@ app.MapGet("/api/news", async (
                 article.DocumentIdentifier!,
                 "%/sounds/play/%"));
 
+    // Filter by source before counting and paginating.
+    if (!string.IsNullOrWhiteSpace(source) &&
+        !source.Equals(
+            "All sources",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        var sourceIdentifiers = source.Trim() switch
+        {
+            "BBC News" => new[]
+            {
+                "bbc.co.uk",
+                "bbc.com",
+                "BBC News"
+            },
+
+            "RTÉ News" => new[]
+            {
+                "rte.ie",
+                "RTÉ News"
+            },
+
+            "The Guardian" => new[]
+            {
+                "theguardian.com",
+                "The Guardian"
+            },
+
+            "The Irish Times" => new[]
+            {
+                "irishtimes.com",
+                "The Irish Times"
+            },
+
+            _ => Array.Empty<string>()
+        };
+
+        if (sourceIdentifiers.Length == 0)
+        {
+            return Results.BadRequest(new
+            {
+                Message = $"Unknown news source: {source}"
+            });
+        }
+
+        eligibleArticles = eligibleArticles
+            .Where(article =>
+                article.SourceCommonName != null &&
+                sourceIdentifiers.Contains(
+                    article.SourceCommonName));
+    }
+
+    // Calculate totals after applying the optional source filter.
     var totalCount = await eligibleArticles.CountAsync(
         cancellationToken);
 

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { NewsArticle } from '../../models/news-article';
 import { NewsArticleService } from '../../services/news-article';
 import { DesignSwitcher } from '../../components/design-switcher';
+import { GkgThemeService } from '../../services/gkg-theme.service';
 
 @Component({
   selector: 'app-news-feed-b',
@@ -14,6 +15,7 @@ import { DesignSwitcher } from '../../components/design-switcher';
 export class NewsFeedB implements OnInit {
   private readonly articleService = inject(NewsArticleService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly gkgThemeService = inject(GkgThemeService);
 
   selectedSource = 'All sources';
 
@@ -39,11 +41,15 @@ export class NewsFeedB implements OnInit {
     this.loadPage(1);
   }
 
+  formatTheme(theme: string): string {
+    return this.gkgThemeService.formatTheme(theme);
+  }
+
   loadPage(page: number): void {
     this.loading = true;
     this.errorMessage = '';
 
-    this.articleService.getPage(page, this.pageSize).subscribe({
+    this.articleService.getPage(page, this.pageSize, this.selectedSource).subscribe({
       next: response => {
         this.articles = response.items.filter(article =>
           article.url &&
@@ -82,6 +88,7 @@ export class NewsFeedB implements OnInit {
 
   selectSource(source: string): void {
     this.selectedSource = source;
+    this.loadPage(1);
   }
 
   previousPage(): void {
@@ -102,5 +109,4 @@ export class NewsFeedB implements OnInit {
     image.style.display = 'none';
     image.parentElement?.classList.add('image-fallback');
   }
-
 }

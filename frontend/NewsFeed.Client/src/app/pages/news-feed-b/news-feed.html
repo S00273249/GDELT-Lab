@@ -1,12 +1,21 @@
+
 <app-design-switcher></app-design-switcher>
 
 <main class="feed-page">
+  <header class="top-bar">
+    <a class="brand" routerLink="/feed/b" aria-label="Global News Monitor home">
+      <span class="brand-mark">G</span>
+      <span>GLOBAL NEWS</span>
+    </a>
+    <span class="edition-label">WORLD EDITION</span>
+  </header>
+
   <section class="page-heading">
     <div>
-      <p class="eyebrow">GLOBAL NEWS MONITOR</p>
+      <p class="eyebrow">YOUR WORLD, IN CONTEXT</p>
       <h1>Latest coverage</h1>
       <p class="subtitle">
-        Explore international news and the topics shaping global events.
+        Discover the stories shaping global events.
       </p>
     </div>
 
@@ -17,7 +26,7 @@
   </section>
 
   <section class="filters" aria-label="Filter articles by source">
-    <span class="filter-label">SOURCE</span>
+    <span class="filter-label">EXPLORE</span>
 
     @for (source of sources; track source) {
       <button
@@ -44,24 +53,30 @@
     <section class="article-list" aria-label="News articles">
       @for (article of filteredArticles; track article.id) {
         <article class="article-card">
-          <div class="article-image-wrapper">
-            @if (article.imageUrl) {
-              <img
-                class="article-thumbnail"
-                [src]="article.imageUrl"
-                [alt]="article.headline"
-                loading="lazy"
-                (error)="onImageError($event)" />
+          <a
+            class="article-image-link"
+            [routerLink]="['/article', 'b', article.id]"
+            [attr.aria-label]="'Read ' + article.headline">
 
-              <div class="image-placeholder">
-                <span>Image unavailable</span>
-              </div>
-            } @else {
-              <div class="image-placeholder">
-                <span>No image available</span>
-              </div>
-            }
-          </div>
+            <div class="article-image-wrapper">
+              @if (article.imageUrl) {
+                <img
+                  class="article-thumbnail"
+                  [src]="article.imageUrl"
+                  [alt]="article.headline"
+                  loading="lazy"
+                  (error)="onImageError($event)" />
+
+                <div class="image-placeholder">
+                  <span>Image unavailable</span>
+                </div>
+              } @else {
+                <div class="image-placeholder">
+                  <span>No image available</span>
+                </div>
+              }
+            </div>
+          </a>
 
           <div class="article-content">
             <div class="article-topline">
@@ -72,7 +87,7 @@
             </div>
 
             <h2>
-              <a [routerLink]="['/article', article.id]">
+              <a [routerLink]="['/article', 'b', article.id]">
                 {{ article.headline }}
               </a>
             </h2>
@@ -82,14 +97,14 @@
             <div class="article-footer">
               <div class="themes">
                 @for (theme of article.themes; track theme) {
-                  <span class="theme-tag">{{ theme }}</span>
+                  <span class="theme-tag">{{ formatTheme(theme) }}</span>
                 }
               </div>
 
               <a
                 class="details-link"
-                [routerLink]="['/article', article.id]">
-                View details <span aria-hidden="true">→</span>
+                [routerLink]="['/article', 'b', article.id]">
+                Read story <span aria-hidden="true">↗</span>
               </a>
             </div>
           </div>
@@ -128,7 +143,7 @@
   }
 
   <footer class="feed-footer">
-    <span>News Feed Prototype</span>
+    <span>GLOBAL NEWS MONITOR</span>
     <span>GDELT-powered interface · Sample data</span>
   </footer>
 </main>
