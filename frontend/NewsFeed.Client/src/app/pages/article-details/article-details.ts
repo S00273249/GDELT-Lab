@@ -1,6 +1,11 @@
 
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  ChangeDetectorRef
+} from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, switchMap } from 'rxjs';
 import { NewsArticle } from '../../models/news-article';
@@ -42,6 +47,10 @@ export class ArticleDetails implements OnInit {
   loading = true;
   errorMessage = '';
 
+  relatedArticles: NewsArticle[] = [];
+  relatedLoading = false;
+  relatedErrorMessage = '';
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
 
@@ -67,12 +76,39 @@ export class ArticleDetails implements OnInit {
           if (!article) {
             this.errorMessage =
               'This article does not exist in the current prototype dataset.';
+            return;
           }
+
+          this.loadRelatedArticles(article.id);
         },
         error: error => {
           console.error('Failed to load article:', error);
           this.errorMessage =
             'Unable to load this article. Check that the News Feed API is running.';
+        }
+      });
+  }
+
+  private loadRelatedArticles(articleId: string): void {
+    this.relatedLoading = true;
+    this.relatedErrorMessage = '';
+
+    this.articleService
+      .getRelated(articleId, 6)
+      .pipe(
+        finalize(() => {
+          this.relatedLoading = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: articles => {
+          this.relatedArticles = articles;
+        },
+        error: error => {
+          console.error('Failed to load related articles:', error);
+          this.relatedErrorMessage =
+            'Unable to load related articles.';
         }
       });
   }
@@ -123,7 +159,10 @@ export class ArticleDetails implements OnInit {
   }
 
   get hiddenLocationCount(): number {
-    return Math.max(0, this.parsedLocations.length - this.visibleLocations.length);
+    return Math.max(
+      0,
+      this.parsedLocations.length - this.visibleLocations.length
+    );
   }
 
   get parsedPeople(): GdeltEntity[] {
@@ -173,7 +212,9 @@ export class ArticleDetails implements OnInit {
     }));
   }
 
-  private parseLocations(raw: string | null | undefined): GdeltLocation[] {
+  private parseLocations(
+    raw: string | null | undefined
+  ): GdeltLocation[] {
     if (!raw) {
       return [];
     }
@@ -239,7 +280,9 @@ export class ArticleDetails implements OnInit {
           longitude
         };
       })
-      .filter((location): location is GdeltLocation => location !== null);
+      .filter(
+        (location): location is GdeltLocation => location !== null
+      );
 
     // Deduplicate equivalent labels, keeping the first occurrence.
     const seen = new Set<string>();
@@ -271,7 +314,9 @@ export class ArticleDetails implements OnInit {
     });
   }
 
-  private parseEntities(raw: string | null | undefined): GdeltEntity[] {
+  private parseEntities(
+    raw: string | null | undefined
+  ): GdeltEntity[] {
     if (!raw) {
       return [];
     }
@@ -313,7 +358,9 @@ export class ArticleDetails implements OnInit {
       });
   }
 
-  private parseOptionalNumber(value: string | undefined): number | null {
+  private parseOptionalNumber(
+    value: string | undefined
+  ): number | null {
     if (!value?.trim()) {
       return null;
     }

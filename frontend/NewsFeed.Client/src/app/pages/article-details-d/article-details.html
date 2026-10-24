@@ -1,3 +1,4 @@
+
 <app-design-switcher></app-design-switcher>
 
 <main class="details-page">
@@ -176,6 +177,67 @@
         }
       </div>
 
+      <!-- Related articles -->
+      <section class="metadata-section related-section">
+        <p class="related-eyebrow">RELATED COVERAGE</p>
+        <h2>Related articles</h2>
+
+        <p class="related-intro">
+          Explore other articles connected through GDELT themes, people,
+          organisations and locations.
+        </p>
+
+        @if (relatedLoading) {
+          <p class="related-status">Finding related articles...</p>
+        } @else if (relatedErrorMessage) {
+          <p class="related-status related-error">
+            {{ relatedErrorMessage }}
+          </p>
+        } @else if (relatedArticles.length > 0) {
+          <div class="related-articles">
+            @for (relatedArticle of relatedArticles; track relatedArticle.id) {
+              <a
+                class="related-article"
+                [routerLink]="['/article/d', relatedArticle.id]">
+
+                @if (relatedArticle.imageUrl) {
+                  <div class="related-article-image">
+                    <img
+                      [src]="relatedArticle.imageUrl"
+                      [alt]="relatedArticle.headline"
+                      loading="lazy">
+                  </div>
+                } @else {
+                  <div class="related-article-image related-image-placeholder">
+                    <span>NEWS</span>
+                  </div>
+                }
+
+                <div class="related-article-content">
+                  <div class="related-article-meta">
+                    <span class="related-source">
+                      {{ relatedArticle.source }}
+                    </span>
+
+                    <time>
+                      {{ relatedArticle.publishedAt | date:'d MMM y' }}
+                    </time>
+                  </div>
+
+                  <h3>{{ relatedArticle.headline }}</h3>
+
+                  <span class="related-read-more">
+                    Read article <span aria-hidden="true">→</span>
+                  </span>
+                </div>
+              </a>
+            }
+          </div>
+        } @else {
+          <p class="related-status">No related articles were found.</p>
+        }
+      </section>
+
       <p class="prototype-note">
         Article metadata is extracted from publisher webpages.
         Themes and other intelligence fields originate from GDELT GKG records.
@@ -189,7 +251,7 @@
         {{ errorMessage || 'This article does not exist in the current prototype dataset.' }}
       </p>
 
-      <a routerLink="/">Return to news feed</a>
+      <a routerLink="/feed/d">Return to news feed</a>
     </section>
   }
 </main>

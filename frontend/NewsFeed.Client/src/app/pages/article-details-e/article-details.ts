@@ -42,6 +42,10 @@ export class ArticleDetailsE implements OnInit {
   loading = true;
   errorMessage = '';
 
+  relatedArticles: NewsArticle[] = [];
+  relatedLoading = false;
+  relatedErrorMessage = '';
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
 
@@ -67,12 +71,38 @@ export class ArticleDetailsE implements OnInit {
           if (!article) {
             this.errorMessage =
               'This article does not exist in the current prototype dataset.';
+            return;
           }
+
+          this.loadRelatedArticles(article.id);
         },
         error: error => {
           console.error('Failed to load article:', error);
           this.errorMessage =
             'Unable to load this article. Check that the News Feed API is running.';
+        }
+      });
+  }
+
+  private loadRelatedArticles(articleId: NewsArticle['id']): void {
+    this.relatedLoading = true;
+    this.relatedErrorMessage = '';
+
+    this.articleService
+      .getRelated(articleId, 6)
+      .pipe(
+        finalize(() => {
+          this.relatedLoading = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: articles => {
+          this.relatedArticles = articles;
+        },
+        error: error => {
+          console.error('Failed to load related articles:', error);
+          this.relatedErrorMessage = 'Unable to load related articles.';
         }
       });
   }

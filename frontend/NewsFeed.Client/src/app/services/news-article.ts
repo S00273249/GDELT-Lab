@@ -12,6 +12,10 @@ export interface NewsArticlePage {
   totalPages: number;
 }
 
+interface RelatedNewsArticleApiResponse extends NewsArticleApiResponse {
+  sharedThemes: string[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -57,7 +61,6 @@ export class NewsArticleService {
     );
   }
 
-
   getById(id: string): Observable<NewsArticle | undefined> {
     return this.http
       .get<NewsArticleApiResponse>(`${this.apiUrl}/${id}`)
@@ -73,6 +76,25 @@ export class NewsArticleService {
       );
   }
 
+  getRelated(
+    id: string,
+    limit = 6
+  ): Observable<NewsArticle[]> {
+    return this.http
+      .get<RelatedNewsArticleApiResponse[]>(
+        `${this.apiUrl}/${id}/related`,
+        {
+          params: {
+            limit: limit.toString()
+          }
+        }
+      )
+      .pipe(
+        map(articles =>
+          articles.map(article => this.mapArticle(article))
+        )
+      );
+  }
 
   private mapArticle(article: NewsArticleApiResponse): NewsArticle {
     const sourceNames: Record<string, string> = {

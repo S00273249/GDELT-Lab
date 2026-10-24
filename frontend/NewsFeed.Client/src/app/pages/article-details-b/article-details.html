@@ -178,6 +178,59 @@
         }
       </div>
 
+      <div class="metadata-section related-section">
+        <p class="eyebrow">RELATED COVERAGE</p>
+        <h2>Related articles</h2>
+        <p class="related-intro">
+          Explore other articles connected through GDELT themes, people,
+          organisations and locations.
+        </p>
+
+        @if (relatedLoading) {
+          <p class="related-status">Finding related articles...</p>
+        } @else if (relatedErrorMessage) {
+          <p class="related-status related-error">{{ relatedErrorMessage }}</p>
+        } @else if (relatedArticles.length > 0) {
+          <div class="related-articles">
+            @for (relatedArticle of relatedArticles; track relatedArticle.id) {
+              <a
+                class="related-article"
+                [routerLink]="['/article/b', relatedArticle.id]">
+
+                @if (relatedArticle.imageUrl) {
+                  <div class="related-article-image">
+                    <img
+                      [src]="relatedArticle.imageUrl"
+                      [alt]="relatedArticle.headline"
+                      loading="lazy">
+                  </div>
+                } @else {
+                  <div class="related-article-image related-image-placeholder">
+                    <span>NEWS</span>
+                  </div>
+                }
+
+                <div class="related-article-content">
+                  <span class="related-source">
+                    {{ relatedArticle.source }}
+                  </span>
+
+                  <h3>{{ relatedArticle.headline }}</h3>
+
+                  <time>
+                    {{ relatedArticle.publishedAt | date:'d MMM y, HH:mm' }}
+                  </time>
+                </div>
+
+                <span class="related-arrow" aria-hidden="true">↗</span>
+              </a>
+            }
+          </div>
+        } @else {
+          <p class="related-status">No related articles were found.</p>
+        }
+      </div>
+
       <p class="prototype-note">
         Article metadata is extracted from publisher webpages.
         Themes and other intelligence fields originate from GDELT GKG records.

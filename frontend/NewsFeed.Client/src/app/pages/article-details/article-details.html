@@ -1,3 +1,4 @@
+
 <app-design-switcher></app-design-switcher>
 
 <main class="details-page">
@@ -181,6 +182,75 @@
         Themes and other intelligence fields originate from GDELT GKG records.
       </p>
     </article>
+
+    <section class="related-section" aria-labelledby="related-heading">
+      <div class="related-header">
+        <div>
+          <p class="eyebrow">KEEP EXPLORING</p>
+          <h2 id="related-heading">Related Articles</h2>
+          <p class="related-intro">
+            Discover other articles connected through GDELT themes,
+            people, organisations and locations.
+          </p>
+        </div>
+      </div>
+
+      @if (relatedLoading) {
+        <div class="related-message">
+          <p>Finding related articles...</p>
+        </div>
+      } @else if (relatedErrorMessage) {
+        <div class="related-message">
+          <p>{{ relatedErrorMessage }}</p>
+        </div>
+      } @else if (relatedArticles.length > 0) {
+        <div class="related-grid">
+          @for (related of relatedArticles; track related.id) {
+            <a
+              class="related-card"
+              [routerLink]="['/article/a', related.id]"
+              [attr.aria-label]="'Read related article: ' + related.headline">
+
+              @if (related.imageUrl) {
+                <div class="related-image-wrapper">
+                  <img
+                    class="related-image"
+                    [src]="related.imageUrl"
+                    [alt]="related.headline"
+                    loading="lazy">
+                </div>
+              }
+
+              <div class="related-card-content">
+                <div class="related-card-meta">
+                  <span class="related-source">{{ related.source }}</span>
+
+                  <time>
+                    {{ related.publishedAt | date:'d MMM y' }}
+                  </time>
+                </div>
+
+                <h3>{{ related.headline }}</h3>
+
+                @if (related.summary) {
+                  <p class="related-summary">
+                    {{ related.summary }}
+                  </p>
+                }
+
+                <span class="related-read-more">
+                  Read article <span aria-hidden="true">→</span>
+                </span>
+              </div>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="related-message">
+          <p>No related articles were found for this article.</p>
+        </div>
+      }
+    </section>
   } @else {
     <section class="not-found">
       <h1>Unable to display article</h1>
